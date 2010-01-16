@@ -4,9 +4,13 @@ class Acorn
 {
 	/**
 	 * Loads file named $name.
+	 *
+	 * <code>
+	 * <?php Acorn::load('controller', 'Users'); ?>
+	 * </code>
 	 * 
-	 * @param string $type Type of file (e.g. 'controller' or 'model').
-	 * @param string $name Name of file (e.g. 'Application' or 'User').
+	 * @param string $type Type of file.
+	 * @param string $name Name of file.
 	 * @static
 	 * @see filePath
 	 * @access public
@@ -19,6 +23,10 @@ class Acorn
 	/**
 	 * Searches Acorn::config('include_paths') for the specified file. 
 	 * 
+	 * <code>
+	 * <?php $path = Acorn::filePath('controller', 'Users'); ?>
+	 * </code>
+	 *
 	 * @param string $type Type of file (e.g. 'controller' or 'model').
 	 * @param string $name Name of file (e.g. 'Application' or 'User').
 	 * @static

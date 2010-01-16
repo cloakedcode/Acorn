@@ -10,7 +10,11 @@
 class AN_View
 {
 	/**
-	 * Variables to use in the view (e.g. array('msg' => 'User created successfully.')).
+	 * Variables to use in the view.
+	 *
+	 * <code>
+	 * <?php AN_View::$vars = array('msg' => 'User created successfully.'); ?>
+	 * </code>
 	 * 
 	 * @static
 	 * @access public
@@ -30,7 +34,11 @@ class AN_View
 	/**
 	 * Renders a view with the specified name.
 	 * 
-	 * @param string $name Name of the view file (e.g. 'users/info' or 'add').
+	 * <code>
+	 * <?php AN_View::renderView('users/info'); ?>
+	 * </code>
+	 * 
+	 * @param string $name Name of the view file.
 	 * @param string $layout Name of the layout to render the view in. If null no layout will be used. (Default: layout)
 	 * @static
 	 * @access public
