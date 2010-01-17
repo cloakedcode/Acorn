@@ -73,9 +73,10 @@ class Acorn
 			$filename = $name.'.phtml';
 		}
 
-		foreach (self::$include_paths as $path)
+		$path = "/{$type}s/{$filename}";
+		foreach (self::$include_paths as $inc)
 		{
-			$file = $path."/{$type}s/{$filename}";
+			$file = $inc.$path;
 
 			if (file_exists($file))
 			{
