@@ -14,7 +14,55 @@ function __autoload($class)
 
 class Acorn
 {
-	static public $include_paths = array('app');
+	static public $include_paths = array();
+
+	/**
+	 * Bootstraps Acorn. Should be called right after Acorn is included. 
+	 * 
+	 * @static
+	 * @access public
+	 */
+	static function bootstrap()
+	{
+		$inc = self::config('include_paths');
+
+		if ($inc !== false && is_array($inc))
+		{
+			self::$include_paths = $inc;
+		}
+	}
+
+	/**
+	 * Returns config for $key. 
+	 * 
+	 * @param string $key Name of value to get from config file.
+	 * @param string $file Name of file in config dir.
+	 * @static
+	 * @access public
+	 * @return mixed False if $key is not found, otherwise value at $key.
+	 */
+	static function config($key, $file = 'config')
+	{
+		static $configs = array();
+
+		if (isset($configs[$file]) === false)
+		{
+			$path = ROOT_DIR.'/config/'.$file.'.php';
+
+			if (file_exists($path))
+			{
+				include($path);
+
+				$configs[$file] = $config;
+			}
+			else
+			{
+				$configs[$file] = false;
+			}
+		}
+
+		return (empty($configs[$file][$key])) ? false : $configs[$file][$key];
+	}
 
 	/**
 	 * Loads file named $name.
