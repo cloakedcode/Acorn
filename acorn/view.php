@@ -45,6 +45,28 @@ class AN_View
 	 */
 	static function renderView($name, $layout = 'layout')
 	{
+		$path = Acorn::filePath('view', $name);
+
+		if ($path !== false)
+		{
+			$__layout = $layout;
+			extract((array)self::$vars, EXTR_OVERWRITE);
+
+			ob_start();
+			include($path);
+			self::$view_contents = ob_get_clean();
+
+			$__layout_path = Acorn::filePath('layout', $__layout);
+
+			if ($__layout_path !== false)
+			{
+				include($__layout_path);
+			}
+			else
+			{
+				echo self::$view_contents;
+			}
+		}
 	}
 
 	/**

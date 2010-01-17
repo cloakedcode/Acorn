@@ -27,6 +27,14 @@ class AN_Controller
 	 */
 	function renderView($name)
 	{
+		if (strpos('/', $name) === false)
+		{
+			$name = $this->_name()."/{$name}";
+		}
+
+		AN_View::$vars = $this;
+
+		AN_View::renderView($name, $this->layout);
 	}
 
 	/**
@@ -41,6 +49,11 @@ class AN_Controller
 	 */
 	function renderPartial($name, $var, $extra_vars = array())
 	{
+	}
+
+	private function _name()
+	{
+		return strtolower(substr(get_class($this), 0, -10));
 	}
 }
 

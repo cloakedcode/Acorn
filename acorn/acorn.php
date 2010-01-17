@@ -1,7 +1,21 @@
 <?php
 
+function __autoload($class)
+{
+	if (substr($class, 0, 2) === 'AN')
+	{
+		require(ACORN_DIR.'/'.strtolower(substr($class, 3)).'.php');
+	}
+	else if (substr($class, -10) === 'Controller')
+	{
+		Acorn::load('controller', substr($class, 0, -10));
+	}
+}
+
 class Acorn
 {
+	static public $include_paths = array('app');
+
 	/**
 	 * Loads file named $name.
 	 *
@@ -18,6 +32,12 @@ class Acorn
 	 */
 	static function load($type, $name)
 	{
+		$path = self::filePath($type, $name);
+
+		if ($path !== false)
+		{
+			include($path);
+		}
 	}
 
 	/**
@@ -35,6 +55,35 @@ class Acorn
 	 */
 	static function filePath($type, $name)
 	{
+		$type = strtolower($type);
+		$name = strtolower($name);
+
+		if ($type === 'layout')
+		{
+			$type = 'view';
+			$name = 'layouts/'.$name;
+		}
+
+		if ($type !== 'layout' && $type !== 'view')
+		{
+			$filename = "{$name}_{$type}.php";
+		}
+		else
+		{
+			$filename = $name.'.phtml';
+		}
+
+		foreach (self::$include_paths as $path)
+		{
+			$file = $path."/{$type}s/{$filename}";
+
+			if (file_exists($file))
+			{
+				return $file;
+			}
+		}
+
+		return false;
 	}
 }
 
