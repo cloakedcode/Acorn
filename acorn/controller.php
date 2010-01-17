@@ -27,7 +27,12 @@ class AN_Controller
 	 */
 	function renderView($name)
 	{
-		if (strpos('/', $name) === false)
+		if ($this->should_render === false)
+		{
+			return;
+		}
+
+		if (strpos($name, '/') === false)
 		{
 			$name = $this->_name()."/{$name}";
 		}
