@@ -1,2 +1,11 @@
-<h1><?php echo $msg ?></h1>
+<h1>Welcome to Acorn</h1>
 <p>This is a demonstration of Acorn. You like?</p>
+<?php
+
+foreach ($posts as $p)
+{
+	echo AN_View::renderPartial('sample/post', $p);
+	echo '<hr/>';
+}
+
+?>

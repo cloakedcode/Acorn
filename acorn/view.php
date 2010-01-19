@@ -45,15 +45,15 @@ class AN_View
 	 */
 	static function renderView($name, $layout = 'layout')
 	{
-		$path = Acorn::filePath('view', $name);
+		$__path = Acorn::filePath('view', $name);
 
-		if ($path !== false)
+		if ($__path !== false)
 		{
 			$__layout = $layout;
 			extract((array)self::$vars, EXTR_OVERWRITE);
 
 			ob_start();
-			include($path);
+			include($__path);
 			self::$view_contents = ob_get_clean();
 
 			$__layout_path = Acorn::filePath('layout', $__layout);
@@ -81,6 +81,23 @@ class AN_View
 	 */
 	static function renderPartial($name, $var, $extra_vars = array())
 	{
+		$dir = dirname($name);
+		$name = basename($name);
+		$file = (empty($dir)) ? '_'.$name : $dir.'/_'.$name;
+
+		$__path = Acorn::filePath('view', $file);
+
+		if ($__path !== false)
+		{
+			$extra_vars[$name] = $var;
+			extract($extra_vars, EXTR_OVERWRITE);
+
+			ob_start();
+			include($__path);
+			return ob_get_clean();
+		}
+
+		return null;
 	}
 
 	/**
