@@ -9,9 +9,9 @@
  {
 	 function index()
 	 {
-		 $this->msg = 'Hello World!';
+		 $this->posts = AN_Model::query('Post', 'SELECT * FROM #table ORDER BY date DESC');
 
-		 // This line isn't needed, renderView is called automatically if $this->should_render is true (it is be default).
+		 // This line is still needed, renderView will (eventually) automatically be called if $this->should_render is true (it is be default).
 		 $this->renderView('index');
 	 }
  }
