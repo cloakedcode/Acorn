@@ -2,6 +2,28 @@
 
 class AN_Model
 {
+	private $_data;
+
+	function __construct($data = array())
+	{
+		$this->_data = $data;
+	}
+
+	function __get($key)
+	{
+		return (isset($this->_data[$key])) ? $this->_data[$key] : null;
+	}
+
+	function __set($key, $value)
+	{
+		$this->_data[$key] = $value;
+	}
+
+	function __toString()
+	{
+		return print_r($this->_data, true);
+	}
+
 	/**
 	 * Executes a (prepared) query and returns an array of models. Substitutes '#table' in the query with the name of the table.  Any arguments beyond $query are substituted into the query.
 	 *
@@ -13,10 +35,21 @@ class AN_Model
 	 * @param string $query SQL query.
 	 * @static
 	 * @access public
-	 * @return array Models as result of executing the query.
+	 * @return bool|array False if query was not successfully executed, otherwise models from query.
 	 */
 	static function query($class, $query)
 	{
+		$query = str_ireplace('#table', AN_Inflector::tableize($class), $query);
+
+		$db = Acorn::database();
+		$res = $db->query($query);
+
+		if ($res !== false)
+		{
+			return new AN_Models($class, $res);
+		}
+
+		return false;
 	}
 
 	/**
@@ -69,6 +102,34 @@ class AN_Model
 	 */
 	static function delete($class, $condition)
 	{
+	}
+}
+
+
+class AN_Models extends AN_DatabaseResult
+{
+	private $model;
+
+	function __construct($class, $result)
+	{
+		if (is_a($result, 'AN_DatabaseResult'))
+		{
+			parent::__construct($result->stmt);
+		}
+		else
+		{
+			parent::__construct($result);
+		}
+
+		$this->model = $class;
+	}
+
+	function offsetGet($index)
+	{
+		$res = parent::offsetGet($index);
+		$class = $this->model;
+
+		return new $class($res);
 	}
 }
 

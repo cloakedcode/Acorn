@@ -4,11 +4,19 @@ function __autoload($class)
 {
 	if (substr($class, 0, 2) === 'AN')
 	{
-		require(ACORN_DIR.'/'.strtolower(substr($class, 3)).'.php');
+		$und = AN_Inflector::underscore(substr($class, 3));
+		$pos = strrpos($und, '_');
+		$name = ($pos !== false) ? substr($und, 0, $pos) : $und;
+
+		require(ACORN_DIR.'/'.$name.'.php');
 	}
 	else if (substr($class, -10) === 'Controller')
 	{
 		Acorn::load('controller', substr($class, 0, -10));
+	}
+	else
+	{
+		Acorn::load('model', $class);
 	}
 }
 
@@ -24,6 +32,8 @@ class Acorn
 	 */
 	static function bootstrap()
 	{
+		require(ACORN_DIR.'/inflector.php');
+
 		$inc = self::config('include_paths');
 
 		if ($inc !== false && is_array($inc))
@@ -62,6 +72,26 @@ class Acorn
 		}
 
 		return (empty($configs[$file][$key])) ? false : $configs[$file][$key];
+	}
+
+	/**
+	 * Returns database using info from config (i.e. Acorn::config('database'))
+	 * 
+	 * @static
+	 * @access public
+	 * @see AN_Database
+	 * @return AN_Database
+	 */
+	static function database()
+	{
+		static $db = null;
+
+		if ($db === null)
+		{
+			$db = new AN_Database(self::config('database'));
+		}
+
+		return $db;
 	}
 
 	/**
@@ -112,13 +142,19 @@ class Acorn
 			$name = 'layouts/'.$name;
 		}
 
-		if ($type !== 'layout' && $type !== 'view')
+		$filename = $name;
+
+		if ($type === 'controller')
 		{
-			$filename = "{$name}_{$type}.php";
+			$filename .= "_{$type}.php";
+		}
+		elseif ($type === 'view' || $type === 'layout')
+		{
+			$filename .= '.phtml';
 		}
 		else
 		{
-			$filename = $name.'.phtml';
+			$filename .= '.php';
 		}
 
 		$path = "/{$type}s/{$filename}";
