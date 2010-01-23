@@ -115,6 +115,11 @@ class Acorn
 		if ($path !== false)
 		{
 			include($path);
+
+			if (strtolower($type) === 'controller')
+			{
+				self::load('helpers', $name);
+			}
 		}
 	}
 
@@ -148,6 +153,10 @@ class Acorn
 		{
 			$filename .= "_{$type}.php";
 		}
+		elseif ($type === 'helpers')
+		{
+			$filename .= "_{$type}.php";
+		}
 		elseif ($type === 'view' || $type === 'layout')
 		{
 			$filename .= '.phtml';
@@ -157,7 +166,7 @@ class Acorn
 			$filename .= '.php';
 		}
 
-		$path = "/{$type}s/{$filename}";
+		$path = '/'.rtrim($type, 's')."s/{$filename}";
 		foreach (self::$include_paths as $inc)
 		{
 			$file = $inc.$path;
