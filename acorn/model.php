@@ -42,7 +42,12 @@ class AN_Model
 		$query = str_ireplace('#table', AN_Inflector::tableize($class), $query);
 
 		$db = Acorn::database();
-		$res = $db->query($query);
+
+		$args = func_get_args();
+		array_shift($args);
+		$args[0] = $query;
+
+		$res = call_user_func_array(array($db, 'query'), $args);
 
 		if ($res !== false)
 		{

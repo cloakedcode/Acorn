@@ -22,6 +22,33 @@ class AN_Database
 	{
 		$stmt = $this->db->prepare($query, array(PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL));
 
+		$args = func_get_args();
+		array_shift($args);
+
+		$num = 1;
+		foreach ($args as $arg)
+		{
+			if ($arg === null)
+			{
+				$type = PDO::PARAM_NULL;
+			}
+			else if (is_bool($arg))
+			{
+				$type = PDO::PARAM_BOOL;
+			}
+			else if (is_numeric($arg))
+			{
+				$type = PDO::PARAM_INT;
+			}
+			else
+			{
+				$type = PDO::PARAM_STR;
+			}
+
+			$stmt->bindValue($num, $arg, $type);
+			$num++;
+		}
+
 		if ($stmt->execute())
 		{
 			return new AN_DatabaseResult($stmt);
