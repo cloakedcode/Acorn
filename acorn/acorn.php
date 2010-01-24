@@ -116,11 +116,20 @@ class Acorn
 		{
 			include($path);
 
-			if (strtolower($type) === 'controller')
+			$type = strtolower($type);
+			if ($type === 'controller')
 			{
-				self::load('helpers', $name);
+				self::_loadedController($name);
 			}
+			else if ($type === 'model')
+			{
+				self::_loadedModel($name);
+			}
+
+			return true;
 		}
+
+		return false;
 	}
 
 	/**
@@ -178,6 +187,27 @@ class Acorn
 		}
 
 		return false;
+	}
+
+	static private function _loadedController($name)
+	{
+		self::load('helpers', $name);
+	}
+
+	static private function _loadedModel($class)
+	{
+		$code = <<<EOD
+class {$class} extends {$class}Model
+{
+	static function query()
+	{
+		\$args = func_get_args();
+		array_unshift(\$args, '{$class}');
+		return call_user_func_array(array('{$class}Model', 'query'), \$args);
+	}
+}
+EOD;
+		eval($code);
 	}
 }
 
