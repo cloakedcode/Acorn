@@ -23,6 +23,7 @@ function __autoload($class)
 class Acorn
 {
 	static public $include_paths = array();
+	static public $params = array();
 
 	/**
 	 * Bootstraps Acorn. Should be called right after Acorn is included. 
@@ -92,6 +93,20 @@ class Acorn
 		}
 
 		return $db;
+	}
+
+	/**
+	 * Sets status and displays error.
+	 * 
+	 * @param int $code Error code
+	 * @static
+	 * @access public
+	 */
+	static function error($code)
+	{
+		header("Status: {$code}");
+
+		echo $code;
 	}
 
 	/**
@@ -187,6 +202,60 @@ class Acorn
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns the Acorn router. 
+	 * 
+	 * @static
+	 * @access public
+	 * @return object
+	 */
+	static function router()
+	{
+		static $router = null;
+
+		if ($router === null)
+		{
+			$router = new AN_Router(ROOT_DIR.'/config/routes.php');
+		}
+
+		return $router;
+	}
+
+	/**
+	 * Parses a URL (uses the router) and loads the resulting controller and calls the action.
+	 * 
+	 * @param string $url URL to parse
+	 * @static
+	 * @access public
+	 */
+	static function run($url)
+	{
+		$params = self::router()->urlToParams($url);
+		self::$params = $params;
+
+		if (empty($params['controller']) === false)
+		{
+			$class = AN_Inflector::camelize($params['controller']);
+
+			if (self::load('controller', $class))
+			{
+				$class .= 'Controller';
+
+				$controller = new $class;
+
+				$controller->callAction($params['action']);
+			}
+			else
+			{
+				self::error(404);
+			}
+		}
+		else
+		{
+			self::error(404);
+		}
 	}
 
 	static private function _loadedController($name)

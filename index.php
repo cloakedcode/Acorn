@@ -11,9 +11,7 @@ $time = microtime(true);
 
 Acorn::bootstrap();
 
-$con = new SampleController;
-
-$con->index();
+Acorn::run($_GET['acorn_url']);
 
 echo microtime(true) - $time;
 

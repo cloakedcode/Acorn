@@ -19,6 +19,25 @@ class AN_Controller
 	public $should_render = true;
 
 	/**
+	 * Calls an action. 
+	 * 
+	 * @param string $action 
+	 * @access public
+	 */
+	function callAction($action)
+	{
+		if (empty($action) === false && is_callable(array(get_class($this), $action)))
+		{
+			$this->{$action}(Acorn::$params);
+
+			if ($this->should_render)
+			{
+				$this->renderView($action);
+			}
+		}
+	}
+
+	/**
 	 * Renders a view. If no slash is found in the name, the controller's name is prefixed to the name (e.g. 'detail' becomes 'users/detail').
 	 * 
 	 * @param string $name
@@ -30,6 +49,10 @@ class AN_Controller
 		if ($this->should_render === false)
 		{
 			return;
+		}
+		else
+		{
+			$this->should_render = false;
 		}
 
 		if (strpos($name, '/') === false)

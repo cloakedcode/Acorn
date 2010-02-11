@@ -132,9 +132,17 @@ class AN_Models extends AN_DatabaseResult
 	function offsetGet($index)
 	{
 		$res = parent::offsetGet($index);
-		$class = $this->model;
 
-		return new $class($res);
+		if (empty($res))
+		{
+			return null;
+		}
+		else
+		{
+			$class = $this->model;
+
+			return new $class($res);
+		}
 	}
 }
 

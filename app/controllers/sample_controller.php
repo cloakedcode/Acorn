@@ -9,9 +9,13 @@
  {
 	 function index()
 	 {
-		 $this->posts = Post::query(Post::$find_by_id, 3079);
+		 $this->posts = Post::query('SELECT * FROM posts ORDER BY date DESC');
+	 }
 
-		 $this->renderView('index');
+	 function view($params)
+	 {
+		$posts = Post::query(Post::$find_by_id, $params['id']);
+		$this->post = $posts[0];
 	 }
  }
 
