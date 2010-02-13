@@ -83,6 +83,11 @@ class AN_Controller
 	{
 		return strtolower(substr(get_class($this), 0, -10));
 	}
+
+	static function _loadedController($name)
+	{
+		Acorn::load('helpers', $name);
+	}
 }
 
 ?>

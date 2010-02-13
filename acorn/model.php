@@ -108,6 +108,22 @@ class AN_Model
 	static function delete($class, $condition)
 	{
 	}
+
+	static function _loadedModel($model)
+	{
+		$code = <<<EOD
+class {$model} extends {$model}Model
+{
+	static function query()
+	{
+		\$args = func_get_args();
+		array_unshift(\$args, '{$model}');
+		return call_user_func_array(array('{$model}Model', 'query'), \$args);
+	}
+}
+EOD;
+		eval($code);
+	}
 }
 
 

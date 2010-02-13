@@ -1,5 +1,7 @@
 <?php
 
+define('ACORN_DIR', dirname(__FILE__));
+
 function __autoload($class)
 {
 	if (substr($class, 0, 2) === 'AN')
@@ -26,20 +28,27 @@ class Acorn
 	static public $params = array();
 
 	/**
-	 * Bootstraps Acorn. Should be called right after Acorn is included. 
+	 * Bootstraps Acorn. Is called automatically when Acorn loaded. You never need to call this function directly.
 	 * 
 	 * @static
 	 * @access public
 	 */
-	static function bootstrap()
+	static function _bootstrap()
 	{
-		require(ACORN_DIR.'/inflector.php');
+		static $strapped = false;
 
-		$inc = self::config('include_paths');
-
-		if ($inc !== false && is_array($inc))
+		if ($strapped === false)
 		{
-			self::$include_paths = $inc;
+			require(ACORN_DIR.'/inflector.php');
+
+			$inc = self::config('include_paths');
+
+			if ($inc !== false && is_array($inc))
+			{
+				self::$include_paths = $inc;
+			}
+			
+			$strapped = true;
 		}
 	}
 
@@ -134,11 +143,11 @@ class Acorn
 			$type = strtolower($type);
 			if ($type === 'controller')
 			{
-				self::_loadedController($name);
+				AN_Controller::_loadedController($name);
 			}
 			else if ($type === 'model')
 			{
-				self::_loadedModel($name);
+				AN_Model::_loadedModel($name);
 			}
 
 			return true;
@@ -257,27 +266,8 @@ class Acorn
 			self::error(404);
 		}
 	}
-
-	static private function _loadedController($name)
-	{
-		self::load('helpers', $name);
-	}
-
-	static private function _loadedModel($class)
-	{
-		$code = <<<EOD
-class {$class} extends {$class}Model
-{
-	static function query()
-	{
-		\$args = func_get_args();
-		array_unshift(\$args, '{$class}');
-		return call_user_func_array(array('{$class}Model', 'query'), \$args);
-	}
 }
-EOD;
-		eval($code);
-	}
-}
+
+Acorn::_bootstrap();
 
 ?>
