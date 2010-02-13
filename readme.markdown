@@ -10,7 +10,7 @@ The term framework likely brings to mind Ruby on Rails or CakePHP or something o
 * Acorn doesn't make you write better code.
 * Acorn does not have supercow powers.
 
-## The ideas behind Acorn (similar to those of uno: breck7/uno):
+## The ideas behind Acorn (similar to those of [uno](/breck7/uno)):
 
 * Don't rewrite PHP (use what exists already).
 * URL rewriting is nice sometimes but Acorn doesn't rewrite everything. Get variables? Use 'em! Pretty URLs? Use 'em! But don't use one to replace the other.
