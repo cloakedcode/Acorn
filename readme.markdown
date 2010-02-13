@@ -26,5 +26,9 @@ The term framework likely brings to mind Ruby on Rails or CakePHP or something o
 ## Contributing
 
 The best thing you can contribute is encouragement. If you use Acorn, or don't but like it, I want to know. Acorn is written in my spare time and the more encouragement I receive the better it will become. If you have comments, suggestions, or questions, please email me.
+
 That being said, you can also contribute by forking Acorn, making changes, and telling me about what you did.
+
 Another great thing you can do is promote it. Tell your friends, talk about it on forums, etc.
+
+All help is greatly appreciated!
