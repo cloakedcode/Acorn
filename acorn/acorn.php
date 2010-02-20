@@ -1,6 +1,11 @@
 <?php
 
-define('ACORN_DIR', dirname(__FILE__));
+if (defined('ACORN_DIR') === false)
+{
+	define('ACORN_DIR', dirname(__FILE__));
+}
+
+define('ACORN_URL', dirname($_SERVER['SCRIPT_NAME']).'/');
 
 function __autoload($class)
 {
@@ -265,6 +270,11 @@ class Acorn
 		{
 			self::error(404);
 		}
+	}
+
+	static function toURL($params)
+	{
+		return ACORN_URL.self::router()->paramsToURL($params);
 	}
 }
 

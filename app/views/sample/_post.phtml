@@ -1,4 +1,4 @@
-<h2><?php echo (basename($_SERVER['REQUEST_URI']) !== $post->id) ? "<a href='view/{$post->id}'>{$post->title}</a>" : $post->title ?></h2>
+<h2><?php echo (basename($_SERVER['REQUEST_URI']) !== $post->id) ? "<a href='".Acorn::toURL(array('action' => 'view', 'id' => $post->id))."'>{$post->title}</a>" : $post->title ?></h2>
 <p>
 <small>Written on <?php echo human_date($post) ?></small>
 <br/>
