@@ -1,7 +1,7 @@
 <?php
 
 ini_set('date.timezone', 'America/New_York');
-define('ROOT_DIR', '.');
+define('ROOT_DIR', dirname(__FILE__));
 
 require('acorn/acorn.php');
 

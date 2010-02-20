@@ -17,9 +17,10 @@
 </head>
 
 <body>
+<?php if (empty($_GET['id'])) : ?>
 	<h1>Welcome to Acorn</h1>
 	<p>This is a demonstration of Acorn. You like?</p>
-<?php
+<?php endif;
 
 ini_set('date.timezone', 'America/New_York');
 

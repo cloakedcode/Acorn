@@ -4,20 +4,32 @@ class AN_Router
 {
 	private $_routes = array();
 	private $_named_connections = array();
+	private $_cached_time;
 	
 	function __construct()
 	{
-		static $loading = false;
-
-		if ($loading === false)
+		if (file_exists(ROOT_DIR.'/cache/routes.php'))
 		{
-			$loading = true;
-			$router = new AN_Router();
-			
-			include(ROOT_DIR.'/config/routes.php');
-			
-			$this->_named_connections = $router->_named_connections;
-			$this->_routes = $router->_routes;
+			include(ROOT_DIR.'/cache/routes.php');
+
+			$this->_named_connections = $named_connections;
+			$this->_routes = $routes;
+			$this->_cached_time = $cached_time;
+		}
+		else
+		{
+			static $loading = false;
+
+			if ($loading === false)
+			{
+				$loading = true;
+				$router = new AN_Router();
+
+				include(ROOT_DIR.'/config/routes.php');
+
+				$this->_named_connections = $router->_named_connections;
+				$this->_routes = $router->_routes;
+			}
 		}
 
 		/*
@@ -31,7 +43,22 @@ class AN_Router
 		file_put_contents($cached_routes_path, '<?php $routes = '.var_export($this->_routes, true).';'.$funcs.'?>');
 		*/
 	}
-	
+
+	function __destruct()
+	{
+		$cache_file = ROOT_DIR.'/cache/routes.php';
+		if (Acorn::config('env') === 'debug' || empty($this->_cached_time) || file_exists($cache_file) === false || $this->_cached_time < filemtime(ROOT_DIR.'/config/routes.php'))
+		{
+			$time = (file_exists($cache_file) ? filemtime($cache_file) : 0);
+			$code = "<?php\n";
+			$code .= '$named_connections = '.var_export($this->_named_connections, true).";\n";
+			$code .= '$routes = '.var_export($this->_routes, true).";\n";
+			$code .= '$cached_time = '.var_export($time, true).";\n";
+			$code .= '?>';
+
+			file_put_contents($cache_file, $code);
+		}
+	}
 	
 	function __call($func, $args)
 	{
