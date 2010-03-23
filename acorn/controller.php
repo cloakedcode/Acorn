@@ -18,6 +18,14 @@ class AN_Controller
 	 */
 	public $should_render = true;
 
+	function afterAction($action)
+	{
+	}
+
+	function beforeAction($action)
+	{
+	}
+
 	/**
 	 * Calls an action. 
 	 * 
@@ -28,7 +36,15 @@ class AN_Controller
 	{
 		if (empty($action) === false && is_callable(array(get_class($this), $action)))
 		{
-			$this->{$action}(Acorn::$params);
+			$new_action = $this->beforeAction($action);
+
+			if ($new_action !== false)
+			{
+				$action = (is_string($new_action) ? $new_action : $action);
+
+				$this->{$action}(Acorn::$params);
+				$this->afterAction($action);
+			}
 
 			if ($this->should_render)
 			{

@@ -10,7 +10,7 @@ $routes[] = "|(?<controller>.*?)/(?<action>.*?)/(?<id>\d+)|";
 $routes[] = "|(?<controller>.*?)/(?<action>[^/]*)/?|";
 */
 
-$router->root('sample#index');
+$router->root('posts#index');
 
 $router->connect(':controller/:action/:id', array(), array('id' => '\d+'));
 
