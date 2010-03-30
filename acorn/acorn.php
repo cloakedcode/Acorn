@@ -64,19 +64,7 @@ class Acorn
 	 */
 	static function defineModel($name, $parent = 'AN_Model')
 	{
-		$code = <<<EOD
-class {$name} extends {$parent}
-{
-	static function query()
-	{
-		\$args = func_get_args();
-		array_unshift(\$args, '{$name}');
-		return call_user_func_array(array('{$parent}', 'query'), \$args);
-	}
-}
-EOD;
-		eval($code);
-		
+		AN_Model::defineModel($name, $parent);
 	}
 
 	/*
