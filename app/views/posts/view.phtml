@@ -1,0 +1,14 @@
+<?php
+if (empty($post))
+{
+?>
+<p>
+	There is no post with that id.
+</p>
+<?php
+}
+else
+{
+	echo AN_View::renderPartial('posts/post', $post);
+}
+?>
