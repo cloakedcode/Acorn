@@ -39,9 +39,12 @@ $time = microtime(true);
  *
  */
 
+Acorn::database(array('user' => 'root', 'password' => 'beer', 'host' => 'localhost', 'database' => 'blog', 'adapter' => 'mysql'));
+Acorn::defineModel('Post');
+
 if (empty($_GET['id']) === false)
 {
-	$posts = Post::query(Post::$find_by_id." ORDER BY date DESC", $_GET['id']);
+	$posts = Post::query("SELECT * FROM #table WHERE id = ? ORDER BY date DESC", $_GET['id']);
 }
 else
 {

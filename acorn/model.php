@@ -1,5 +1,9 @@
 <?php
 
+/*
+ * Class: AN_Model 
+ * The 'M' in MVC.
+ */
 class AN_Model
 {
 	private $_data;
@@ -24,6 +28,32 @@ class AN_Model
 		return print_r($this->_data, true);
 	}
 
+	/*
+	 * Method: defineModel
+	 * Defines a model at runtime allowing for models to be used without the need to create a class for each one.
+	 * 
+	 * @param string $name Name for the new model.
+	 * @param string $parent The class the model should inherit from. (Default: AN_Model)
+	 * @static
+	 * @access public
+	 */
+	static function defineModel($name, $parent = 'AN_Model')
+	{
+		$code = <<<EOD
+class {$name} extends {$parent}
+{
+	static function query()
+	{
+		\$args = func_get_args();
+		array_unshift(\$args, '{$name}');
+		return call_user_func_array(array('{$parent}', 'query'), \$args);
+	}
+}
+EOD;
+		eval($code);
+		
+	}
+
 	/**
 	 * Executes a (prepared) query and returns an array of models. Substitutes '#table' in the query with the name of the table.  Any arguments beyond $query are substituted into the query.
 	 *
@@ -39,7 +69,7 @@ class AN_Model
 	 */
 	static function query($class, $query)
 	{
-		$query = str_ireplace('#table', AN_Inflector::tableize($class), $query);
+		$query = str_ireplace('#table', Acorn::tableize($class), $query);
 
 		$db = Acorn::database();
 
