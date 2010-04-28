@@ -20,7 +20,7 @@ The term framework likely brings to mind Ruby on Rails or CakePHP or something o
 ## Getting Started
 
 1. Browse the demo code in the 'app' directory as well as 'post.php'. Both illustrate Acorn's features and exemplify its capabilities.
-2. Download Acorn and read the API documentation in [acorn/docs](/skrat19/Acorn/tree/master/acorn/docs/).
+2. Download Acorn and read the API documentation in [docs](/skrat19/Acorn/tree/master/docs/).
 3. Start coding!
 
 ## Contributing
