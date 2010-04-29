@@ -322,10 +322,10 @@ class Acorn
 
 				if (isset($defaults[$key]))
 				{
-					$reg .= '?';
+					$reg = "/?{$reg}?";
 				}
 
-				$url = str_replace(':'.$key, $reg, $url);
+				$url = str_replace(':'.$key, $reg.'$', $url);
 				$keys[] = $key;
 			}
 		}
@@ -407,6 +407,15 @@ class Acorn
 			if (preg_match('|'.$url_pattern.'|', $url, $matches) > 0)
 			{
 				array_shift($matches);
+
+				foreach ($matches as $key => $value)
+				{
+					if (is_int($key))
+					{
+						unset($matches[$key]);
+					}
+				}
+
 				$params = array_merge($data[1], $matches);
 
 				call_user_func($data[0], $params);
