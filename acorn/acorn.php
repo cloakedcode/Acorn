@@ -40,10 +40,6 @@ function __autoload($class)
 
 		require(ACORN_DIR.'/'.$name.'.php');
 	}
-	else if (substr($class, -10) === 'Controller')
-	{
-		Acorn::load('controller', substr($class, 0, -10));
-	}
 	else
 	{
 		Acorn::load('model', $class);
@@ -132,7 +128,7 @@ class Acorn
 	 * Method: load
 	 * Loads named file with the given type.
 	 *
-	 * : <?php Acorn::load('controller', 'Users'); ?>
+	 * : <?php Acorn::load('model', 'User'); ?>
 	 * 
 	 * Parameters:
 	 * 	string $type - Type of file.
@@ -153,11 +149,7 @@ class Acorn
 			include($path);
 
 			$type = strtolower($type);
-			if ($type === 'controller')
-			{
-				AN_Controller::_loadedController($name);
-			}
-			else if ($type === 'model')
+			if ($type === 'model')
 			{
 				AN_Model::_loadedModel($name);
 			}
@@ -172,11 +164,11 @@ class Acorn
 	 * Method: filePath
 	 * Searches Acorn::config('include_paths') for the specified file. 
 	 * 
-	 * : <?php $path = Acorn::filePath('controller', 'Users'); ?>
+	 * : <?php $path = Acorn::filePath('model', 'User'); ?>
 	 *
 	 * Parameters:
-	 * 	string $type - Type of file (e.g. 'controller' or 'model').
-	 * 	string $name - Name of file (e.g. 'Application' or 'User').
+	 * 	string $type - Type of file - it gets converted to lowercase (e.g. 'model').
+	 * 	string $name - Name of file - it gets converted to lowercase (e.g. 'User').
 	 *
 	 * Returns:
 	 * 	mixed False if no file exists, otherwise path of file.
@@ -186,24 +178,8 @@ class Acorn
 		$type = strtolower($type);
 		$name = strtolower($name);
 
-		if ($type === 'layout')
-		{
-			$type = 'view';
-			$name = 'layouts/'.$name;
-		}
+		$filename = $name.'.php';
 
-		$filename = $name;
-
-		if ($type === 'controller' || $type === 'helpers')
-		{
-			$filename .= "_{$type}.php";
-		}
-		else
-		{
-			$filename .= '.php';
-		}
-
-		$path = '/'.rtrim($type, 's')."s/{$filename}";
 		foreach (self::$include_paths as $inc)
 		{
 			$file = $inc.$path;
@@ -219,21 +195,27 @@ class Acorn
 
 	/*
 	 * Method: renderView
-	 * Renders a view with the specified name.
+	 * Renders the view at the specified path.
 	 * 
-	 * : <?php Acorn::renderView('users/info'); ?>
+	 * : <?php Acorn::renderView('./users/info'); ?>
 	 * 
 	 * Parameters:
-	 * 	string $name - Name of the view file.
+	 * 	string $file - Path to the view file.
 	 * 	string $layout - Name of the layout to render the view in. If null no layout will be used. (Default: layout)
+	 *
+	 * See Also:
+	 *	<filePath>
 	 */
-	static function renderView($name, $layout = 'layout')
+	static function renderView($file, $layout = 'layout')
 	{
-		$__path = self::filePath('view', $name);
+		$__path = self::filePath('view', $file);
+		unset($file);
 
 		if ($__path !== false)
 		{
 			$__layout = $layout;
+			unset($layout);
+
 			extract((array)self::$vars, EXTR_OVERWRITE);
 
 			ob_start();
@@ -259,7 +241,7 @@ class Acorn
 	 * 
 	 * Parameters:
 	 * 	string $name - Name of the partial to render (e.g. 'posts/detail' would be 'posts/_detail.php' on disk).
-	 * 	mixed $var 
+	 * 	mixed $var - Variable to be given the name of the partial (e.g. name = 'posts/detail', $detail = $var).
 	 * 	array $extra_vars - Variables for the partial to use. (e.g. array('user' => $user, 'time' => time()))
 	 *
 	 * Returns:
@@ -322,15 +304,15 @@ class Acorn
 
 				if (isset($defaults[$key]))
 				{
-					$reg = "/?{$reg}?";
+					$reg = "?{$reg}?";
 				}
 
-				$url = str_replace(':'.$key, $reg.'$', $url);
+				$url = str_replace(':'.$key, $reg, $url);
 				$keys[] = $key;
 			}
 		}
 
-		self::$routes[$url] = array($callback, (array)$defaults, $keys, $orig_url);
+		self::$routes[$url.'$'] = array($callback, (array)$defaults, $keys, $orig_url);
 	}
 
 	/*
