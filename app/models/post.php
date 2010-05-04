@@ -2,11 +2,9 @@
 
 class PostModel extends AN_Model
 {
-	static $find_by_id = 'SELECT * FROM #table WHERE id = ?';
-
-	function human_date()
+	function tags()
 	{
-		return date('l, \t\h\e jS \of F, Y', strtotime($this->date));
+		return self::query('SELECT name, slug FROM posts INNER JOIN posts_tags ON posts.id = posts_tags.tag_id WHERE posts_tags.post_id = ?', $this->id);
 	}
 }
 

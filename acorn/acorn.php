@@ -28,7 +28,7 @@ if (defined('ACORN_DIR') === false)
 }
 
 define('ACORN_VERSION', 0.9);
-define('ACORN_URL', dirname($_SERVER['SCRIPT_NAME']).'/');
+define('ACORN_URL', dirname($_SERVER['PHP_SELF']).'/');
 
 function __autoload($class)
 {
@@ -57,6 +57,7 @@ class Acorn
 {
 	static public $params = array();
 	static public $vars = array();
+	static public $view_contents = '';
 
 	static private $routes = array();
 
@@ -146,13 +147,13 @@ class Acorn
 
 		if ($path !== false)
 		{
-			include($path);
-
 			$type = strtolower($type);
 			if ($type === 'model')
 			{
-				AN_Model::_loadedModel($name);
+				AN_Model::defineModel($name.'Model');
 			}
+
+			include($path);
 
 			return true;
 		}
@@ -180,9 +181,9 @@ class Acorn
 
 		$filename = $name.'.php';
 
-		foreach (self::$include_paths as $inc)
+		foreach (array('./') as $inc)
 		{
-			$file = $inc.$path;
+			$file = $inc.'/'.$filename;
 
 			if (file_exists($file))
 			{
@@ -222,7 +223,7 @@ class Acorn
 			include($__path);
 			self::$view_contents = ob_get_clean();
 
-			$__layout_path = ($layout !== null) ? self::filePath('layout', $__layout) : false;
+			$__layout_path = ($__layout !== null) ? self::filePath('layout', $__layout) : false;
 
 			if ($__layout_path !== false)
 			{
@@ -362,7 +363,7 @@ class Acorn
 			{
 				if (preg_match('|'.$url_pattern.'|', $method.' '.$url))
 				{
-					return $url;
+					return substr($url, 1);
 				}
 			}
 		}
@@ -381,8 +382,10 @@ class Acorn
 	{
 		if ($url === null)
 		{
-			$url = $_SERVER['REQUEST_METHOD'].' '.substr($_SERVER['REQUEST_URI'], strlen($_SERVER['SCRIPT_NAME']));
+			$url = $_SERVER['REQUEST_METHOD'].' '.substr($_SERVER['PHP_SELF'], strlen($_SERVER['SCRIPT_NAME']));
 		}
+
+		$url = ($url{strlen($url)-1} == ' ') ? 'GET /' : $url;
 
 		foreach (self::$routes as $url_pattern => $data)
 		{
@@ -492,17 +495,19 @@ class AN_Model
 	 */
 	static function defineModel($name, $parent = 'AN_Model')
 	{
+		$model = (substr($name, -5) === 'Model') ? substr($name, 0, -5) : $name;
 		$code = <<<EOD
 class {$name} extends {$parent}
 {
 	static function query()
 	{
 		\$args = func_get_args();
-		array_unshift(\$args, '{$name}');
+		array_unshift(\$args, '{$model}');
 		return call_user_func_array(array('{$parent}', 'query'), \$args);
 	}
 }
 EOD;
+
 		eval($code);
 		
 	}
@@ -636,12 +641,15 @@ class AN_Models extends AN_DatabaseResult
 		{
 			return null;
 		}
-		else
+		else if (is_a($res, $this->model) === false)
 		{
 			$class = $this->model;
 
-			return new $class($res);
+			$res = new $class($res);
+			$this->offsetSet($index, $res);
 		}
+
+		return $res;
 	}
 }
 
@@ -668,7 +676,7 @@ class AN_Database
 
 	function query($query)
 	{
-		$stmt = $this->db->prepare($query, array(PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL));
+		$stmt = $this->db->prepare($query, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
 
 		$args = func_get_args();
 		array_shift($args);
@@ -709,17 +717,22 @@ class AN_Database
 class AN_DatabaseResult extends ArrayObject
 {
 	protected $stmt;
+	protected $count;
+	protected $index = -1;
 
 	function __construct($stmt)
 	{
 		$this->stmt = $stmt;
+		$this->count = $stmt->rowCount();
+
+		parent::__construct(array());
 	}
 
 	function offsetExists($index)
 	{
 		if (is_int($index))
 		{
-			return ($index >= 0 && $index < $this->stmt->rowCount());
+			return ($index >= 0 && $index < $this->count);
 		}
 
 		return false;
@@ -729,7 +742,28 @@ class AN_DatabaseResult extends ArrayObject
 	{
 		if (is_int($index))
 		{
-			return $this->stmt->fetch(PDO::FETCH_ASSOC, PDO::FETCH_ORI_ABS, $index);
+			$row = (parent::offsetExists($index)) ? parent::offsetGet($index) : null;
+
+			if (empty($row))
+			{
+				while ($this->index < $index)
+				{
+					$row = $this->stmt->fetch(PDO::FETCH_ASSOC);
+
+					if ($this->offsetExists($index))
+					{
+						$this->offsetSet($index, $row);
+					}
+					else
+					{
+						$this->append($row);
+					}
+
+					$this->index++;
+				}
+			}
+
+			return parent::offsetGet($index);
 		}
 
 		return null;
@@ -742,7 +776,7 @@ class AN_DatabaseResult extends ArrayObject
 
 	function count()
 	{
-		return $this->stmt->rowCount();
+		return $this->count;
 	}
 
 	function all()

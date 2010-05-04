@@ -1,0 +1,39 @@
+<h1>Welcome Admin!</h1>
+
+<p><a href='<?php echo Acorn::toURL('#add') ?>'>Add Post</a></p>
+<table>
+<tr>
+	<th>Title</th>
+	<th>Date</th>
+	<th>Actions</th>
+</tr>
+
+<?php
+if (empty($posts))
+{
+	$link = Acorn::toURL('#add');
+	echo <<<EOD
+	<tr>
+		<td colspan='3'>There are no posts. <a href='{$link}'>Create</a> one.</td>
+	</tr>
+EOD;
+}
+else
+{
+	foreach ($posts as $p)
+	{
+		$date = $p->human_date();
+		$edit_url = Acorn::toURL(array('action' => 'edit', 'id' => $p->id));
+		echo <<<EOD
+	<tr>
+		<td>{$p->title}</td>
+		<td>{$date}</td>
+		<td>
+		<a href='{$edit_url}'>Edit</a>
+		</td>
+	</tr>
+EOD;
+	}
+}
+?>
+</table>
