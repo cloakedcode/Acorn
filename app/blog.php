@@ -23,10 +23,7 @@ function posted_this_year($post)
 
 ini_set('date.timezone', 'America/New_York');
 
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
-
-require '../acorn/acorn.php';
+require '../acorn/dev.php';
 
 Acorn::load('model', 'Post');
 Acorn::database(array('user' => 'root', 'password' => 'beer', 'host' => 'localhost', 'database' => 'blog', 'adapter' => 'mysql'));

@@ -1,4 +1,4 @@
-<?php
+<?
 $count = count($tags);
 $i = 0;
 

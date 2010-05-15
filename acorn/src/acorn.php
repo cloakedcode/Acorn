@@ -30,22 +30,9 @@ if (defined('ACORN_DIR') === false)
 define('ACORN_VERSION', 0.9);
 define('ACORN_URL', dirname($_SERVER['PHP_SELF']).'/');
 
-//include(ACORN_DIR.'/model.php');
-
 function __autoload($class)
 {
-	if (substr($class, 0, 2) === 'AN')
-	{
-		$und = Acorn::underscore(substr($class, 3));
-		$pos = strrpos($und, '_');
-		$name = ($pos !== false) ? substr($und, 0, $pos) : $und;
-
-		require(ACORN_DIR.'/'.$name.'.php');
-	}
-	else
-	{
-		Acorn::load('model', $class);
-	}
+	Acorn::load('model', $class);
 }
 
 /*
@@ -60,6 +47,7 @@ class Acorn
 	static public $params = array();
 	static public $vars = array();
 	static public $view_contents = '';
+	static public $cache_path = 'cache';
 
 	static private $routes = array();
 
@@ -152,7 +140,6 @@ class Acorn
 			$type = strtolower($type);
 			if ($type === 'model')
 			{
-				//$path = 'anmodel://'.$path;
 				AN_Model::defineModel($name.'Model');
 			}
 
@@ -223,14 +210,14 @@ class Acorn
 			extract((array)self::$vars, EXTR_OVERWRITE);
 
 			ob_start();
-			include($__path);
+			include('anview://'.$__path);
 			self::$view_contents = ob_get_clean();
 
 			$__layout_path = ($__layout !== null) ? self::filePath('layout', $__layout) : false;
 
 			if ($__layout_path !== false)
 			{
-				include($__layout_path);
+				include('anview://'.$__layout_path);
 			}
 			else
 			{
@@ -265,7 +252,7 @@ class Acorn
 			extract($extra_vars, EXTR_OVERWRITE);
 
 			ob_start();
-			include($__path);
+			include('anview://'.$__path);
 			return ob_get_clean();
 		}
 
