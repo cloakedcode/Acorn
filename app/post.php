@@ -1,6 +1,6 @@
 <?php
 
-class Post extends PostModel
+class Post extends AN_Model
 {
 	function tags()
 	{

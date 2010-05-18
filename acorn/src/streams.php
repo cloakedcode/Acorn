@@ -108,7 +108,7 @@ class AN_ModelStream extends AN_Stream
 			$new_funcs = "";
 
 			$functions = array(
-				'query' => 'static function query() { $args = func_get_args(); array_unshift($args, __CLASS__); call_user_func_array(array("parent", "query"), $args); }'
+				'query' => 'static function query() { $args = func_get_args(); array_unshift($args, __CLASS__); return call_user_func_array(array("parent", "query"), $args); }'
 			);
 
 			foreach ($functions as $name => $def)

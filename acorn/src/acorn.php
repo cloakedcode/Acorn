@@ -47,7 +47,7 @@ class Acorn
 	static public $params = array();
 	static public $vars = array();
 	static public $view_contents = '';
-	static public $cache_path = 'cache';
+	static public $cache_path = './cache';
 
 	static private $routes = array();
 
@@ -140,7 +140,7 @@ class Acorn
 			$type = strtolower($type);
 			if ($type === 'model')
 			{
-				AN_Model::defineModel($name.'Model');
+				$path = "anmodel://{$path}";
 			}
 
 			include($path);
