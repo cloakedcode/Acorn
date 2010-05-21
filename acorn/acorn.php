@@ -30,9 +30,11 @@ if (defined('ACORN_DIR') === false)
 define('ACORN_VERSION', 0.9);
 define('ACORN_URL', dirname($_SERVER['PHP_SELF']).'/');
 
-function __autoload($class)
+spl_autoload_register('acorn_autoload');
+
+function acorn_autoload($class)
 {
-	Acorn::load('model', $class);
+	return Acorn::load('model', $class);
 }
 
 /*
@@ -48,6 +50,7 @@ class Acorn
 	static public $vars = array();
 	static public $view_contents = '';
 	static public $cache_path = './cache';
+	static public $include_paths = array('.');
 
 	static private $routes = array();
 
@@ -62,6 +65,8 @@ class Acorn
 		if ($strapped === false)
 		{
 			$strapped = true;
+
+			AN_Event::run('acorn.bootstrap');
 		}
 	}
 
@@ -93,6 +98,14 @@ class Acorn
 	{
 		static $db = null;
 
+		$base = null;
+		AN_Event::runFilterOnData('acorn.database', $base);
+		
+		if (empty($base) === false)
+		{
+			return $base;
+		}
+
 		if ($db === null)
 		{
 			$db = new AN_Database($config);
@@ -112,7 +125,7 @@ class Acorn
 	{
 		header("Status: {$code}");
 
-		echo $code;
+		AN_Event::run('acorn.error', $code);
 	}
 
 	/*
@@ -133,10 +146,15 @@ class Acorn
 	 */
 	static function load($type, $name)
 	{
+		$event_params = array('type' => &$type, 'name' => &$name);
+		AN_Event::runFilterOnData('acorn.will_load_file', $event_params);
+
 		$path = self::filePath($type, $name);
 
 		if ($path !== false)
 		{
+			AN_Event::runFilterOnData('acorn.will_load_file_at_path', $path);
+
 			$type = strtolower($type);
 			if ($type === 'model')
 			{
@@ -144,6 +162,8 @@ class Acorn
 			}
 
 			include($path);
+
+			AN_Event::run('acorn.did_load_file', $path);
 
 			return true;
 		}
@@ -168,16 +188,30 @@ class Acorn
 	{
 		$type = strtolower($type);
 		$name = strtolower($name);
+		$path = '';
 
-		$filename = $name.'.php';
+		$event_params = array('type' => &$type, 'name' => &$name, 'path' => &$path);
+		AN_Event::runFilterOnData('acorn.file_path', $event_params);
 
-		foreach (array('./') as $inc)
+		if (empty($path) === false)
 		{
-			$file = $inc.'/'.$filename;
+			return $path;
+		}
+		else
+		{
+			$filename = (AN_Event::runFilterOnData('acorn.file_name', $name)) ? $name : $name.'.php';
+			$paths = self::$include_paths;
 
-			if (file_exists($file))
+			AN_Event::runFilterOnData('acorn.include_paths', $paths);
+			
+			foreach ($paths as $inc)
 			{
-				return $file;
+				$file = $inc.'/'.$filename;
+
+				if (file_exists($file))
+				{
+					return $file;
+				}
 			}
 		}
 
@@ -204,12 +238,15 @@ class Acorn
 
 		if ($__path !== false)
 		{
+			ob_start();
+
 			$__layout = $layout;
 			unset($layout);
 
+			AN_Event::runFilterOnData('acorn.will_render_view', $__path);
+
 			extract((array)self::$vars, EXTR_OVERWRITE);
 
-			ob_start();
 			include('anview://'.$__path);
 			self::$view_contents = ob_get_clean();
 
@@ -217,10 +254,13 @@ class Acorn
 
 			if ($__layout_path !== false)
 			{
+				AN_Event::runFilterOnData('acorn.will_render_layout', $__layout_path);
 				include('anview://'.$__layout_path);
 			}
 			else
 			{
+				AN_Event::run('acorn.will_render_without_layout');
+
 				echo self::$view_contents;
 			}
 		}
@@ -240,9 +280,14 @@ class Acorn
 	 */
 	static function renderPartial($name, $var, $extra_vars = array())
 	{
-		$dir = dirname($name);
-		$name = basename($name);
-		$file = (empty($dir)) ? '_'.$name : $dir.'/_'.$name;
+		$file = $name;
+
+		if (AN_Event::runFilterOnData('acorn.partial_base_file_name', $name) === false)
+		{
+			$dir = dirname($name);
+			$name = basename($name);
+			$file = (empty($dir)) ? '_'.$name : $dir.'/_'.$name;
+		}
 
 		$__path = self::filePath('view', $file);
 
@@ -252,7 +297,10 @@ class Acorn
 			extract($extra_vars, EXTR_OVERWRITE);
 
 			ob_start();
+
+			AN_Event::runFilterOnData('acorn.will_render_partial', $name);
 			include('anview://'.$__path);
+
 			return ob_get_clean();
 		}
 
@@ -276,7 +324,7 @@ class Acorn
 	 */
 	static function route($url, $callback, $defaults = array(), $regex = array())
 	{
-		if (is_string($callback) === false && (is_array($callback) && count($callback) < 2) === false)
+		if (is_string($callback) === false && (is_array($callback) && count($callback) < 2))
 		{
 			throw new Exception('Invalid callback.');
 		}
@@ -322,6 +370,12 @@ class Acorn
 	static function url($params, $method = 'get')
 	{
 		$method = strtoupper($method);
+		$event_params = array('params' => &$params, 'method' => &$method);
+
+		if (AN_Event::runFilterOnData('acorn.will_route_params', $event_params) && isset($event_params['url']))
+		{
+			return $event_params['url'];
+		}
 
 		foreach (self::$routes as $url_pattern => $data)
 		{
@@ -377,6 +431,8 @@ class Acorn
 
 		$url = ($url{strlen($url)-1} == ' ') ? 'GET /' : $url;
 
+		AN_Event::runFilterOnData('acorn.will_route_url', $url);
+
 		foreach (self::$routes as $url_pattern => $data)
 		{
 			if (preg_match('|'.$url_pattern.'|', $url, $matches) > 0)
@@ -393,6 +449,8 @@ class Acorn
 
 				$params = array_merge($data[1], $matches);
 
+				$event_params = array('route' => &$data[0], 'params' => &$params);
+				AN_Event::runFilterOnData('acorn.will_execute_route', $event_params);
 				call_user_func($data[0], $params);
 
 				break;
@@ -446,114 +504,116 @@ Acorn::_bootstrap();
 ?>
 <?php
 
-class AN_Controller
+class AN_Event
 {
-	/**
-	 * Layout to use when rendering. 
-	 * 
-	 * @var string
-	 * @access public
-	 */
-	public $layout = 'layout';
+	static private $callbacks = array();
 
-	/**
-	 * Whether or not to render. If set to false calls to renderView and renderPartial will not output anything. 
-	 * 
-	 * @var bool
-	 * @access public
-	 */
-	public $should_render = true;
-
-	function afterAction($action)
+	static function addCallback($event, $callback)
 	{
+		return self::addCallbackBefore($event, $callback, null);
 	}
 
-	function beforeAction($action)
+	static function addCallbackBefore($event, $callback, $other_callback)
 	{
-	}
-
-	/**
-	 * Calls an action. 
-	 * 
-	 * @param string $action 
-	 * @access public
-	 */
-	function callAction($action)
-	{
-		if (empty($action) === false && is_callable(array(get_class($this), $action)))
+		if (is_string($callback) === false && (is_array($callback) && count($callback) < 2))
 		{
-			$new_action = $this->beforeAction($action);
-
-			if ($new_action !== false)
-			{
-				$action = (is_string($new_action) ? $new_action : $action);
-
-				$this->{$action}(Acorn::$params);
-				$this->afterAction($action);
-			}
-
-			if ($this->should_render)
-			{
-				$this->renderView($action);
-			}
+			throw new Exception('Invalid callback.');
 		}
-	}
 
-	/**
-	 * Renders a view. If no slash is found in the name, the controller's name is prefixed to the name (e.g. 'detail' becomes 'users/detail').
-	 * 
-	 * @param string $name
-	 * @see View::renderView
-	 * @access public
-	 */
-	function renderView($name)
-	{
-		if ($this->should_render === false)
+		$index = array_search($other_callback, self::$callbacks[$event]);
+
+		if ($index !== false)
 		{
-			return;
+			if ($index !== 0)
+			{
+				self::$callbacks[$event][$index -1] = $callback;
+			}
+			else
+			{
+				array_unshift(self::$callback[$event], $callback);
+			}
+			
+			return true;
 		}
 		else
 		{
-			$this->should_render = false;
-		}
+			self::$callbacks[$event][] = $callback;
 
-		if (strpos($name, '/') === false)
+			return true;
+		}
+			
+		return false;
+	}
+
+	static function removeCallback($event, $callback)
+	{
+		if (empty(self::$callbacks[$event]))
 		{
-			$name = $this->_name()."/{$name}";
+			return true;
 		}
 
-		AN_View::$vars = $this;
+		$index = array_search($callback, self::$callbacks[$event]);
 
-		AN_View::renderView($name, $this->layout);
+		if ($index !== false)
+		{
+			unset(self::$callbacks[$event][$index]);
+			
+			return true;
+		}
+
+		return false;
 	}
 
-	/**
-	 * Renders a partial and returns the contents.
-	 * 
-	 * @param string $name 
-	 * @param mixed $var 
-	 * @param array $extra_vars 
-	 * @see View::renderPartial
-	 * @access public
-	 * @return Contents of rendered partial.
-	 */
-	function renderPartial($name, $var, $extra_vars = array())
+	static function run($event, $data = null)
 	{
-	}
+		$callbacks = (isset(self::$callbacks[$event])) ? self::$callbacks[$event] : false;
 
-	private function _name()
-	{
-		return strtolower(substr(get_class($this), 0, -10));
-	}
+		if (empty($callbacks) === false)
+		{
+			foreach ($callbacks as $func)
+			{
+				$return_value = call_user_func($func, $data);
 
-	static function _loadedController($name)
+				if ($return_value === false)
+				{
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+	
+	static function runFilterOnData($event, &$data)
 	{
-		Acorn::load('helpers', $name);
+		$callbacks = (isset(self::$callbacks[$event])) ? self::$callbacks[$event] : false;
+
+		if (empty($callbacks))
+		{
+			return false;
+		}
+
+		$orig_data = $data;
+		foreach ($callbacks as $func)
+		{
+			$return_value = call_user_func($func, $data);
+
+			if ($return_value === false)
+			{
+				if ($data !== $orig_data)
+				{
+					return true;
+				}
+
+				return false;
+			}
+		}
+
+		return false;
 	}
 }
 
 ?>
-
 <?php
 
 /*
@@ -631,15 +691,18 @@ EOD;
 
 		$db = Acorn::database();
 
-		$args = func_get_args();
-		array_shift($args);
-		$args[0] = $query;
-
-		$res = call_user_func_array(array($db, 'query'), $args);
-
-		if ($res !== false)
+		if (empty($db) === false)
 		{
-			return new AN_Models($class, $res);
+			$args = func_get_args();
+			array_shift($args);
+			$args[0] = $query;
+
+			$res = call_user_func_array(array($db, 'query'), $args);
+
+			if ($res !== false)
+			{
+				return new AN_Models($class, $res);
+			}
 		}
 
 		return false;

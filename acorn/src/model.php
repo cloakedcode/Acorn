@@ -75,15 +75,18 @@ EOD;
 
 		$db = Acorn::database();
 
-		$args = func_get_args();
-		array_shift($args);
-		$args[0] = $query;
-
-		$res = call_user_func_array(array($db, 'query'), $args);
-
-		if ($res !== false)
+		if (empty($db) === false)
 		{
-			return new AN_Models($class, $res);
+			$args = func_get_args();
+			array_shift($args);
+			$args[0] = $query;
+
+			$res = call_user_func_array(array($db, 'query'), $args);
+
+			if ($res !== false)
+			{
+				return new AN_Models($class, $res);
+			}
 		}
 
 		return false;
