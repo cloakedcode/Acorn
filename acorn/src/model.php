@@ -7,6 +7,13 @@
 class AN_Model
 {
 	private $_data;
+	private $_changed_data;
+
+	static private $_table_defs = array();
+
+	
+	public $errors = array();
+	protected $validation_rules = array();
 
 	function __construct($data = array())
 	{
@@ -15,12 +22,24 @@ class AN_Model
 
 	function __get($key)
 	{
+		if ($key === 'primary_key')
+		{
+			$class = get_class($this);
+
+			self::_tableDefinition($class);
+			return self::$_table_defs[$class]['primary_key'];
+		}
+
 		return (isset($this->_data[$key])) ? $this->_data[$key] : null;
 	}
 
 	function __set($key, $value)
 	{
-		$this->_data[$key] = $value;
+		if (isset($this->_data[$key]) === false || $this->_data[$key] != $value)
+		{
+			$this->_data[$key] = $value;
+			$this->_changed_data[$key] = $value;
+		}
 	}
 
 	function __toString()
@@ -107,6 +126,37 @@ EOD;
 	 */
 	static function create($class, $data)
 	{
+		$model = new $class($data);
+		$return = true;
+
+		if ($model->save() === false)
+		{
+			$return = $model->errors;
+		}
+
+		unset($model);
+
+		return $return;
+	}
+
+	static function insert($class, $data)
+	{
+		$query = "INSERT INTO #table SET";
+		$values = array();
+		$columns = self::_tableDefinition($class);
+
+		foreach ($data as $key => $val)
+		{
+			if (isset($columns[$key]))
+			{
+				$query .= " `{$key}` = ?, ";
+				$values[] = $val;
+			}
+		}
+		
+		array_unshift($values, rtrim($query, ', '));
+		array_unshift($values, $class);
+		return call_user_func_array(array('self', 'query'), $values);
 	}
 
 	/**
@@ -125,6 +175,26 @@ EOD;
 	 */
 	static function update($class, $value, $condition)
 	{
+		$query = "UPDATE #table SET ";
+		$vals = array();
+		$columns = self::_tableDefinition($class);
+
+		foreach ($value as $key => $val)
+		{
+			if (isset($columns[$key]))
+			{
+				$query .= "`{$key}` = ?, ";
+				$vals[] = $val;
+			}
+		}
+
+		$query = rtrim($query, ', ')." WHERE {$condition}";
+
+		$args = array_merge($vals, array_slice(func_get_args(), 3));
+		array_unshift($args, $query);
+		array_unshift($args, $class);
+
+		return call_user_func_array(array('self', 'query'), $args);
 	}
 
 	/**
@@ -142,6 +212,115 @@ EOD;
 	 */
 	static function delete($class, $condition)
 	{
+	}
+
+	function save($validate = true)
+	{
+		if ($validate)
+		{
+			$this->validate();
+			if (empty($this->errors) === false)
+			{
+				return false;
+			}
+		}
+
+		$class = get_class($this);
+		self::_tableDefinition($class);
+		
+		if (isset($this->_data[$this->primary_key]))
+		{
+			$key = $this->primary_key;
+			return self::update($class, $this->_changed_data, "{$key} = ?", $this->_data[$key]);
+		}
+		else
+		{
+			return self::insert($class, $this->_data);
+		}
+	}
+
+	function validate()
+	{
+		$this->errors = array();
+
+		$def = $this->_tableDefinition(get_class($this));
+		$rules = array_merge($def, $this->validation_rules);
+		
+		$changed_data = empty($this->_changed_data);
+		$primary_key = $this->primary_key;
+
+		foreach ($rules as $column => $rule)
+		{
+			if (($changed_data && isset($this->_changed_data[$column]) === false) || $column === $primary_key || $column === 'primary_key')
+			{
+				continue;
+			}
+
+			$errors = array();
+			$val = $this->{$column};
+
+			if (isset($rule['length']) && strlen((string)$val) > $rule['length'])
+			{
+				$errors[] = Acorn::camelize($column)." is too long.";
+			}
+
+			if (isset($rule['null']) && $rule['null'] === false && (empty($val) && $val !== 0))
+			{
+				$errors[] = Acorn::camelize($column)." is required.";
+			}
+
+			if (empty($errors) === false)
+			{
+				$this->errors[$column] = $errors;
+			}
+		}
+	}
+
+	function column_definition($column)
+	{
+		$def = self::_tableDefinition(get_class($this));
+
+		return (empty($def[$column])) ? null : $def[$column];
+	}
+
+	static function _tableDefinition($class)
+	{
+		if (empty(self::$_table_defs[$class]))
+		{
+			$table = Acorn::tableize($class);
+			$defs = self::query($class, "DESCRIBE `{$table}`");
+
+			foreach ($defs as $def)
+			{
+				$len = null;
+
+				if (preg_match('/([^\(]*)\((\d+)\)/', $def->Type, $matches))
+				{
+					$type = $matches[1];
+					$len = $matches[2];
+				}
+				else
+				{
+					$type = $def->Type;
+				}
+
+				$pretty_def = array('type' => $type, 'null' => ($def->Null === "YES"));
+
+				if (isset($len))
+				{
+					$pretty_def['length'] = (int)$len;
+				}
+
+				self::$_table_defs[$class][$def->Field] = $pretty_def;
+
+				if ($def->Key == "PRI")
+				{
+					self::$_table_defs[$class]['primary_key'] = $def->Field;
+				}
+			}
+		}
+
+		return self::$_table_defs[$class];
 	}
 
 	static function _loadedModel($model)

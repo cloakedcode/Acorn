@@ -27,8 +27,9 @@ if (defined('ACORN_DIR') === false)
 	define('ACORN_DIR', dirname(__FILE__));
 }
 
+$url = dirname($_SERVER['SCRIPT_NAME']);
+define('ACORN_URL', ($url === '/') ? $url : $url.'/');
 define('ACORN_VERSION', 0.9);
-define('ACORN_URL', dirname($_SERVER['PHP_SELF']).'/');
 
 spl_autoload_register('acorn_autoload');
 
@@ -123,6 +124,7 @@ class Acorn
 	 */
 	static function error($code)
 	{
+		header("HTTP/1.0 {$code}");
 		header("Status: {$code}");
 
 		AN_Event::run('acorn.error', $code);
@@ -173,7 +175,7 @@ class Acorn
 
 	/*
 	 * Method: filePath
-	 * Searches Acorn::config('include_paths') for the specified file. 
+	 * Searches Acorn::$include_paths for the specified file. 
 	 * 
 	 * : <?php $path = Acorn::filePath('model', 'User'); ?>
 	 *
@@ -200,21 +202,30 @@ class Acorn
 		else
 		{
 			$filename = (AN_Event::runFilterOnData('acorn.file_name', $name)) ? $name : $name.'.php';
-			$paths = self::$include_paths;
 
-			AN_Event::runFilterOnData('acorn.include_paths', $paths);
-			
-			foreach ($paths as $inc)
-			{
-				$file = $inc.'/'.$filename;
-
-				if (file_exists($file))
-				{
-					return $file;
-				}
-			}
+			return self::pathForFile($filename);
 		}
 
+		return false;
+	}
+
+
+	static function pathForFile($filename)
+	{
+		$paths = self::$include_paths;
+
+		AN_Event::runFilterOnData('acorn.include_paths', $paths);
+		
+		foreach ($paths as $inc)
+		{
+			$file = $inc.'/'.$filename;
+
+			if (file_exists($file))
+			{
+				return $file;
+			}
+		}
+		
 		return false;
 	}
 
@@ -331,6 +342,7 @@ class Acorn
 		
 		$keys = array();
 		$orig_url = substr($url, strpos($url, ' ') + 1);
+		$url = str_ireplace('/', '\/', $url);
 
 		if (preg_match_all('/:([a-zA-Z0-9]+)/', $url, $matches))
 		{
@@ -338,7 +350,7 @@ class Acorn
 
 			foreach ($matches[0] as $key)
 			{
-				$reg = (empty($regex[$key])) ? '[^/;,\.\?]*' : $regex[$key];
+				$reg = (empty($regex[$key])) ? '[^\/;,\.\?]*' : $regex[$key];
 				$reg = "(?P<{$key}>{$reg})";
 
 				if (isset($defaults[$key]))
@@ -351,7 +363,10 @@ class Acorn
 			}
 		}
 
-		self::$routes[$url.'$'] = array($callback, (array)$defaults, $keys, $orig_url);
+		$bits = explode(' ', $url, 2);
+		$bits[0] = '('.$bits[0].')';
+
+		self::$routes[$bits[0].' '.$bits[1].'$'] = array($callback, (array)$defaults, $keys, $orig_url);
 	}
 
 	/*
@@ -405,9 +420,9 @@ class Acorn
 
 			if ($filled_keys === count($data[2]) && $filled_keys >= count($params))
 			{
-				if (preg_match('|'.$url_pattern.'|', $method.' '.$url))
+				if (preg_match('/'.$url_pattern.'/', $method.' '.$url))
 				{
-					return substr($url, 1);
+					return ACORN_URL.substr($url, 1);
 				}
 			}
 		}
@@ -426,7 +441,24 @@ class Acorn
 	{
 		if ($url === null)
 		{
-			$url = $_SERVER['REQUEST_METHOD'].' '.substr($_SERVER['PHP_SELF'], strlen($_SERVER['SCRIPT_NAME']));
+			if (isset($_SERVER['PATH_INFO']))
+			{
+				$request = $_SERVER['PATH_INFO'];
+			}
+			else if (preg_match('/^(\/.*?)(\?|&).*$/', $_SERVER['QUERY_STRING'], $matches))
+			{
+				$request = $matches[1];
+			}
+			else if (empty($_SERVER['QUERY_STRING']) === false && $_SERVER['QUERY_STRING']{0} === '/')
+			{
+				$request = $_SERVER['QUERY_STRING'];
+			}
+			else
+			{
+				$request = '/';
+			}
+
+			$url = $_SERVER['REQUEST_METHOD'].' '.$request;
 		}
 
 		$url = ($url{strlen($url)-1} == ' ') ? 'GET /' : $url;
@@ -435,7 +467,7 @@ class Acorn
 
 		foreach (self::$routes as $url_pattern => $data)
 		{
-			if (preg_match('|'.$url_pattern.'|', $url, $matches) > 0)
+			if (preg_match('/'.$url_pattern.'/', $url, $matches) > 0)
 			{
 				array_shift($matches);
 
@@ -447,15 +479,19 @@ class Acorn
 					}
 				}
 
-				$params = array_merge($data[1], $matches);
+				$params = array_merge($data[1], array_filter($matches));
 
 				$event_params = array('route' => &$data[0], 'params' => &$params);
 				AN_Event::runFilterOnData('acorn.will_execute_route', $event_params);
 				call_user_func($data[0], $params);
 
-				break;
+				return true;
 			}
 		}
+
+		self::error(404);
+
+		return false;
 	}
 
 	/*
@@ -504,6 +540,8 @@ Acorn::_bootstrap();
 ?>
 <?php
 
+define('IS_PHP_5_3', (float)phpversion() >= 5.3);
+
 class AN_Event
 {
 	static private $callbacks = array();
@@ -520,6 +558,11 @@ class AN_Event
 			throw new Exception('Invalid callback.');
 		}
 
+		if (isset(self::$callbacks[$event]) === false)
+		{
+			self::$callbacks[$event] = array();
+		}
+		
 		$index = array_search($other_callback, self::$callbacks[$event]);
 
 		if ($index !== false)
@@ -537,7 +580,7 @@ class AN_Event
 		}
 		else
 		{
-			self::$callbacks[$event][] = $callback;
+			array_unshift(self::$callbacks[$event], $callback);
 
 			return true;
 		}
@@ -596,7 +639,7 @@ class AN_Event
 		$orig_data = $data;
 		foreach ($callbacks as $func)
 		{
-			$return_value = call_user_func($func, $data);
+			$return_value = call_user_func_array($func, array(&$data));
 
 			if ($return_value === false)
 			{
@@ -623,6 +666,13 @@ class AN_Event
 class AN_Model
 {
 	private $_data;
+	private $_changed_data;
+
+	static private $_table_defs = array();
+
+	
+	public $errors = array();
+	protected $validation_rules = array();
 
 	function __construct($data = array())
 	{
@@ -631,12 +681,24 @@ class AN_Model
 
 	function __get($key)
 	{
+		if ($key === 'primary_key')
+		{
+			$class = get_class($this);
+
+			self::_tableDefinition($class);
+			return self::$_table_defs[$class]['primary_key'];
+		}
+
 		return (isset($this->_data[$key])) ? $this->_data[$key] : null;
 	}
 
 	function __set($key, $value)
 	{
-		$this->_data[$key] = $value;
+		if (isset($this->_data[$key]) === false || $this->_data[$key] != $value)
+		{
+			$this->_data[$key] = $value;
+			$this->_changed_data[$key] = $value;
+		}
 	}
 
 	function __toString()
@@ -723,6 +785,37 @@ EOD;
 	 */
 	static function create($class, $data)
 	{
+		$model = new $class($data);
+		$return = true;
+
+		if ($model->save() === false)
+		{
+			$return = $model->errors;
+		}
+
+		unset($model);
+
+		return $return;
+	}
+
+	static function insert($class, $data)
+	{
+		$query = "INSERT INTO #table SET";
+		$values = array();
+		$columns = self::_tableDefinition($class);
+
+		foreach ($data as $key => $val)
+		{
+			if (isset($columns[$key]))
+			{
+				$query .= " `{$key}` = ?, ";
+				$values[] = $val;
+			}
+		}
+		
+		array_unshift($values, rtrim($query, ', '));
+		array_unshift($values, $class);
+		return call_user_func_array(array('self', 'query'), $values);
 	}
 
 	/**
@@ -741,6 +834,26 @@ EOD;
 	 */
 	static function update($class, $value, $condition)
 	{
+		$query = "UPDATE #table SET ";
+		$vals = array();
+		$columns = self::_tableDefinition($class);
+
+		foreach ($value as $key => $val)
+		{
+			if (isset($columns[$key]))
+			{
+				$query .= "`{$key}` = ?, ";
+				$vals[] = $val;
+			}
+		}
+
+		$query = rtrim($query, ', ')." WHERE {$condition}";
+
+		$args = array_merge($vals, array_slice(func_get_args(), 3));
+		array_unshift($args, $query);
+		array_unshift($args, $class);
+
+		return call_user_func_array(array('self', 'query'), $args);
 	}
 
 	/**
@@ -758,6 +871,115 @@ EOD;
 	 */
 	static function delete($class, $condition)
 	{
+	}
+
+	function save($validate = true)
+	{
+		if ($validate)
+		{
+			$this->validate();
+			if (empty($this->errors) === false)
+			{
+				return false;
+			}
+		}
+
+		$class = get_class($this);
+		self::_tableDefinition($class);
+		
+		if (isset($this->_data[$this->primary_key]))
+		{
+			$key = $this->primary_key;
+			return self::update($class, $this->_changed_data, "{$key} = ?", $this->_data[$key]);
+		}
+		else
+		{
+			return self::insert($class, $this->_data);
+		}
+	}
+
+	function validate()
+	{
+		$this->errors = array();
+
+		$def = $this->_tableDefinition(get_class($this));
+		$rules = array_merge($def, $this->validation_rules);
+		
+		$changed_data = empty($this->_changed_data);
+		$primary_key = $this->primary_key;
+
+		foreach ($rules as $column => $rule)
+		{
+			if (($changed_data && isset($this->_changed_data[$column]) === false) || $column === $primary_key || $column === 'primary_key')
+			{
+				continue;
+			}
+
+			$errors = array();
+			$val = $this->{$column};
+
+			if (isset($rule['length']) && strlen((string)$val) > $rule['length'])
+			{
+				$errors[] = Acorn::camelize($column)." is too long.";
+			}
+
+			if (isset($rule['null']) && $rule['null'] === false && (empty($val) && $val !== 0))
+			{
+				$errors[] = Acorn::camelize($column)." is required.";
+			}
+
+			if (empty($errors) === false)
+			{
+				$this->errors[$column] = $errors;
+			}
+		}
+	}
+
+	function column_definition($column)
+	{
+		$def = self::_tableDefinition(get_class($this));
+
+		return (empty($def[$column])) ? null : $def[$column];
+	}
+
+	static function _tableDefinition($class)
+	{
+		if (empty(self::$_table_defs[$class]))
+		{
+			$table = Acorn::tableize($class);
+			$defs = self::query($class, "DESCRIBE `{$table}`");
+
+			foreach ($defs as $def)
+			{
+				$len = null;
+
+				if (preg_match('/([^\(]*)\((\d+)\)/', $def->Type, $matches))
+				{
+					$type = $matches[1];
+					$len = $matches[2];
+				}
+				else
+				{
+					$type = $def->Type;
+				}
+
+				$pretty_def = array('type' => $type, 'null' => ($def->Null === "YES"));
+
+				if (isset($len))
+				{
+					$pretty_def['length'] = (int)$len;
+				}
+
+				self::$_table_defs[$class][$def->Field] = $pretty_def;
+
+				if ($def->Key == "PRI")
+				{
+					self::$_table_defs[$class]['primary_key'] = $def->Field;
+				}
+			}
+		}
+
+		return self::$_table_defs[$class];
 	}
 
 	static function _loadedModel($model)
@@ -1004,14 +1226,14 @@ class AN_Stream
 
 	static function stream_path($path)
 	{
-		$url = parse_url($path);
+		$bits = (strpos($path, '://')) ? explode('://', $path) : array();
 
-		if (empty($url['scheme']))
+		if (empty($bits))
 		{
 			return $path;
 		}
 		
-		return (isset($url['path'])) ? $url['host'].$url['path'] : $url['host'];
+		return $bits[1];
 	}
 
 	function stream_open($path, $mode, $options, &$opened_path)
@@ -1104,22 +1326,31 @@ class AN_ModelStream extends AN_Stream
 		{
 			$model_data = file_get_contents($path);
 			$new_funcs = "";
+			$extract_class_code = '';
+
+			if (strpos($model_data, ' extends AN_Model'))
+			{
+				$extract_class_code = '$args[0] = $args[0]["an_model_class"];';
+			}
 
 			$functions = array(
-				'query' => 'static function query() { $args = func_get_args(); array_unshift($args, __CLASS__); return call_user_func_array(array("parent", "query"), $args); }'
+				'query' => 'static function query() { $args = func_get_args(); if (is_array($args[0]) === false || empty($args[0]["an_model_class"])) array_unshift($args, array("an_model_class" => __CLASS__)); '.$extract_class_code.' return call_user_func_array(array("parent", "query"), $args); }',
+				'create' => 'static function create() { $args = func_get_args(); if (is_array($args[0]) === false || empty($args[0]["an_model_class"])) array_unshift($args, array("an_model_class" => __CLASS__)); '.$extract_class_code.' return call_user_func_array(array("parent", "create"), $args); }',
+				'insert' => 'static function insert() { $args = func_get_args(); if (is_array($args[0]) === false || empty($args[0]["an_model_class"])) array_unshift($args, array("an_model_class" => __CLASS__)); '.$extract_class_code.' return call_user_func_array(array("parent", "insert"), $args); }',
+				'update' => 'static function update() { $args = func_get_args(); if (is_array($args[0]) === false || empty($args[0]["an_model_class"])) array_unshift($args, array("an_model_class" => __CLASS__)); '.$extract_class_code.' return call_user_func_array(array("parent", "update"), $args); }'
 			);
 
 			foreach ($functions as $name => $def)
 			{
 				if (stripos("static function {$name}(", $model_data) === false)
 				{
-					$new_funcs .= $def;
+					$new_funcs .= $def."\n";
 				}
 
 				$model_data = str_ireplace("parent::{$name}(", "parent::{$name}(__CLASS__,", $model_data);
 			}
 
-			$model_data = preg_replace('/class (.*?) extends AN_Model\s*?{/', "class \$1 extends AN_Model\n{\n{$new_funcs}", $model_data);
+			$model_data = preg_replace('/class (.*?) extends (\w*?)\s*?{/', "class \$1 extends \$2\n{\n{$new_funcs}", $model_data);
 			file_put_contents($cache, $model_data);
 		}
 

@@ -27,8 +27,9 @@ if (defined('ACORN_DIR') === false)
 	define('ACORN_DIR', dirname(__FILE__));
 }
 
+$url = dirname($_SERVER['SCRIPT_NAME']);
+define('ACORN_URL', ($url === '/') ? $url : $url.'/');
 define('ACORN_VERSION', 0.9);
-define('ACORN_URL', dirname($_SERVER['PHP_SELF']).'/');
 
 spl_autoload_register('acorn_autoload');
 
@@ -123,6 +124,7 @@ class Acorn
 	 */
 	static function error($code)
 	{
+		header("HTTP/1.0 {$code}");
 		header("Status: {$code}");
 
 		AN_Event::run('acorn.error', $code);
@@ -173,7 +175,7 @@ class Acorn
 
 	/*
 	 * Method: filePath
-	 * Searches Acorn::config('include_paths') for the specified file. 
+	 * Searches Acorn::$include_paths for the specified file. 
 	 * 
 	 * : <?php $path = Acorn::filePath('model', 'User'); ?>
 	 *
@@ -200,21 +202,30 @@ class Acorn
 		else
 		{
 			$filename = (AN_Event::runFilterOnData('acorn.file_name', $name)) ? $name : $name.'.php';
-			$paths = self::$include_paths;
 
-			AN_Event::runFilterOnData('acorn.include_paths', $paths);
-			
-			foreach ($paths as $inc)
-			{
-				$file = $inc.'/'.$filename;
-
-				if (file_exists($file))
-				{
-					return $file;
-				}
-			}
+			return self::pathForFile($filename);
 		}
 
+		return false;
+	}
+
+
+	static function pathForFile($filename)
+	{
+		$paths = self::$include_paths;
+
+		AN_Event::runFilterOnData('acorn.include_paths', $paths);
+		
+		foreach ($paths as $inc)
+		{
+			$file = $inc.'/'.$filename;
+
+			if (file_exists($file))
+			{
+				return $file;
+			}
+		}
+		
 		return false;
 	}
 
@@ -331,6 +342,7 @@ class Acorn
 		
 		$keys = array();
 		$orig_url = substr($url, strpos($url, ' ') + 1);
+		$url = str_ireplace('/', '\/', $url);
 
 		if (preg_match_all('/:([a-zA-Z0-9]+)/', $url, $matches))
 		{
@@ -338,7 +350,7 @@ class Acorn
 
 			foreach ($matches[0] as $key)
 			{
-				$reg = (empty($regex[$key])) ? '[^/;,\.\?]*' : $regex[$key];
+				$reg = (empty($regex[$key])) ? '[^\/;,\.\?]*' : $regex[$key];
 				$reg = "(?P<{$key}>{$reg})";
 
 				if (isset($defaults[$key]))
@@ -351,7 +363,10 @@ class Acorn
 			}
 		}
 
-		self::$routes[$url.'$'] = array($callback, (array)$defaults, $keys, $orig_url);
+		$bits = explode(' ', $url, 2);
+		$bits[0] = '('.$bits[0].')';
+
+		self::$routes[$bits[0].' '.$bits[1].'$'] = array($callback, (array)$defaults, $keys, $orig_url);
 	}
 
 	/*
@@ -405,9 +420,9 @@ class Acorn
 
 			if ($filled_keys === count($data[2]) && $filled_keys >= count($params))
 			{
-				if (preg_match('|'.$url_pattern.'|', $method.' '.$url))
+				if (preg_match('/'.$url_pattern.'/', $method.' '.$url))
 				{
-					return substr($url, 1);
+					return ACORN_URL.substr($url, 1);
 				}
 			}
 		}
@@ -426,7 +441,24 @@ class Acorn
 	{
 		if ($url === null)
 		{
-			$url = $_SERVER['REQUEST_METHOD'].' '.substr($_SERVER['PHP_SELF'], strlen($_SERVER['SCRIPT_NAME']));
+			if (isset($_SERVER['PATH_INFO']))
+			{
+				$request = $_SERVER['PATH_INFO'];
+			}
+			else if (preg_match('/^(\/.*?)(\?|&).*$/', $_SERVER['QUERY_STRING'], $matches))
+			{
+				$request = $matches[1];
+			}
+			else if (empty($_SERVER['QUERY_STRING']) === false && $_SERVER['QUERY_STRING']{0} === '/')
+			{
+				$request = $_SERVER['QUERY_STRING'];
+			}
+			else
+			{
+				$request = '/';
+			}
+
+			$url = $_SERVER['REQUEST_METHOD'].' '.$request;
 		}
 
 		$url = ($url{strlen($url)-1} == ' ') ? 'GET /' : $url;
@@ -435,7 +467,7 @@ class Acorn
 
 		foreach (self::$routes as $url_pattern => $data)
 		{
-			if (preg_match('|'.$url_pattern.'|', $url, $matches) > 0)
+			if (preg_match('/'.$url_pattern.'/', $url, $matches) > 0)
 			{
 				array_shift($matches);
 
@@ -447,15 +479,19 @@ class Acorn
 					}
 				}
 
-				$params = array_merge($data[1], $matches);
+				$params = array_merge($data[1], array_filter($matches));
 
 				$event_params = array('route' => &$data[0], 'params' => &$params);
 				AN_Event::runFilterOnData('acorn.will_execute_route', $event_params);
 				call_user_func($data[0], $params);
 
-				break;
+				return true;
 			}
 		}
+
+		self::error(404);
+
+		return false;
 	}
 
 	/*

@@ -6,14 +6,14 @@ class AN_Stream
 
 	static function stream_path($path)
 	{
-		$url = parse_url($path);
+		$bits = (strpos($path, '://')) ? explode('://', $path) : array();
 
-		if (empty($url['scheme']))
+		if (empty($bits))
 		{
 			return $path;
 		}
 		
-		return (isset($url['path'])) ? $url['host'].$url['path'] : $url['host'];
+		return $bits[1];
 	}
 
 	function stream_open($path, $mode, $options, &$opened_path)
@@ -106,22 +106,31 @@ class AN_ModelStream extends AN_Stream
 		{
 			$model_data = file_get_contents($path);
 			$new_funcs = "";
+			$extract_class_code = '';
+
+			if (strpos($model_data, ' extends AN_Model'))
+			{
+				$extract_class_code = '$args[0] = $args[0]["an_model_class"];';
+			}
 
 			$functions = array(
-				'query' => 'static function query() { $args = func_get_args(); array_unshift($args, __CLASS__); return call_user_func_array(array("parent", "query"), $args); }'
+				'query' => 'static function query() { $args = func_get_args(); if (is_array($args[0]) === false || empty($args[0]["an_model_class"])) array_unshift($args, array("an_model_class" => __CLASS__)); '.$extract_class_code.' return call_user_func_array(array("parent", "query"), $args); }',
+				'create' => 'static function create() { $args = func_get_args(); if (is_array($args[0]) === false || empty($args[0]["an_model_class"])) array_unshift($args, array("an_model_class" => __CLASS__)); '.$extract_class_code.' return call_user_func_array(array("parent", "create"), $args); }',
+				'insert' => 'static function insert() { $args = func_get_args(); if (is_array($args[0]) === false || empty($args[0]["an_model_class"])) array_unshift($args, array("an_model_class" => __CLASS__)); '.$extract_class_code.' return call_user_func_array(array("parent", "insert"), $args); }',
+				'update' => 'static function update() { $args = func_get_args(); if (is_array($args[0]) === false || empty($args[0]["an_model_class"])) array_unshift($args, array("an_model_class" => __CLASS__)); '.$extract_class_code.' return call_user_func_array(array("parent", "update"), $args); }'
 			);
 
 			foreach ($functions as $name => $def)
 			{
 				if (stripos("static function {$name}(", $model_data) === false)
 				{
-					$new_funcs .= $def;
+					$new_funcs .= $def."\n";
 				}
 
 				$model_data = str_ireplace("parent::{$name}(", "parent::{$name}(__CLASS__,", $model_data);
 			}
 
-			$model_data = preg_replace('/class (.*?) extends AN_Model\s*?{/', "class \$1 extends AN_Model\n{\n{$new_funcs}", $model_data);
+			$model_data = preg_replace('/class (.*?) extends (\w*?)\s*?{/', "class \$1 extends \$2\n{\n{$new_funcs}", $model_data);
 			file_put_contents($cache, $model_data);
 		}
 
