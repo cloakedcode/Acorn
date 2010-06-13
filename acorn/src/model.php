@@ -156,7 +156,12 @@ EOD;
 		
 		array_unshift($values, rtrim($query, ', '));
 		array_unshift($values, $class);
-		return call_user_func_array(array('self', 'query'), $values);
+		if (call_user_func_array(array('self', 'query'), $values))
+		{
+			return Acorn::database()->lastInsertID();
+		}
+
+		return false;
 	}
 
 	/**
@@ -226,7 +231,7 @@ EOD;
 		}
 
 		$class = get_class($this);
-		self::_tableDefinition($class);
+		$table_def = self::_tableDefinition($class);
 		
 		if (isset($this->_data[$this->primary_key]))
 		{
@@ -235,7 +240,15 @@ EOD;
 		}
 		else
 		{
-			return self::insert($class, $this->_data);
+			$insert = self::insert($class, $this->_data);
+
+			if ($insert !== false && $insert !== true && isset($table_def['id']))
+			{
+				$this->id = $insert;
+				return true;
+			}
+
+			return $insert;
 		}
 	}
 
@@ -363,7 +376,7 @@ class AN_Models extends AN_DatabaseResult
 	{
 		$res = parent::offsetGet($index);
 
-		if (empty($res))
+		if (is_array($res) && array_filter($res) == array())
 		{
 			return null;
 		}
