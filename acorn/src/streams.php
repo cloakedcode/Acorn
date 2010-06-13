@@ -130,7 +130,7 @@ class AN_ModelStream extends AN_Stream
 				$model_data = str_ireplace("parent::{$name}(", "parent::{$name}(__CLASS__,", $model_data);
 			}
 
-			$model_data = preg_replace('/class (.*?) extends (\w*?)\s*?{/', "class \$1 extends \$2\n{\n{$new_funcs}", $model_data);
+			$model_data = preg_replace('/}\s*\?>/', "{$new_funcs}}?>", $model_data);
 			file_put_contents($cache, $model_data);
 		}
 

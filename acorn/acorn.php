@@ -188,12 +188,15 @@ class Acorn
 	 */
 	static function filePath($type, $name)
 	{
-		$type = strtolower($type);
-		$name = strtolower($name);
 		$path = '';
 
 		$event_params = array('type' => &$type, 'name' => &$name, 'path' => &$path);
-		AN_Event::runFilterOnData('acorn.file_path', $event_params);
+
+		if (AN_Event::runFilterOnData('acorn.file_path', $event_params) === false)
+		{
+			$type = strtolower($type);
+			$name = strtolower($name);
+		}
 
 		if (empty($path) === false)
 		{
@@ -815,7 +818,12 @@ EOD;
 		
 		array_unshift($values, rtrim($query, ', '));
 		array_unshift($values, $class);
-		return call_user_func_array(array('self', 'query'), $values);
+		if (call_user_func_array(array('self', 'query'), $values))
+		{
+			return Acorn::database()->lastInsertID();
+		}
+
+		return false;
 	}
 
 	/**
@@ -885,7 +893,7 @@ EOD;
 		}
 
 		$class = get_class($this);
-		self::_tableDefinition($class);
+		$table_def = self::_tableDefinition($class);
 		
 		if (isset($this->_data[$this->primary_key]))
 		{
@@ -894,7 +902,15 @@ EOD;
 		}
 		else
 		{
-			return self::insert($class, $this->_data);
+			$insert = self::insert($class, $this->_data);
+
+			if ($insert !== false && $insert !== true && isset($table_def['id']))
+			{
+				$this->id = $insert;
+				return true;
+			}
+
+			return $insert;
 		}
 	}
 
@@ -1022,7 +1038,7 @@ class AN_Models extends AN_DatabaseResult
 	{
 		$res = parent::offsetGet($index);
 
-		if (empty($res))
+		if (is_array($res) && array_filter($res) == array())
 		{
 			return null;
 		}
@@ -1096,6 +1112,11 @@ class AN_Database
 		}
 
 		return false;
+	}
+
+	function lastInsertID()
+	{
+		return $this->db->lastInsertId();
 	}
 }
 
@@ -1350,7 +1371,7 @@ class AN_ModelStream extends AN_Stream
 				$model_data = str_ireplace("parent::{$name}(", "parent::{$name}(__CLASS__,", $model_data);
 			}
 
-			$model_data = preg_replace('/class (.*?) extends (\w*?)\s*?{/', "class \$1 extends \$2\n{\n{$new_funcs}", $model_data);
+			$model_data = preg_replace('/}\s*\?>/', "{$new_funcs}}?>", $model_data);
 			file_put_contents($cache, $model_data);
 		}
 
