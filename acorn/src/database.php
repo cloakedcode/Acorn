@@ -56,6 +56,11 @@ class AN_Database
 
 		return false;
 	}
+
+	function lastInsertID()
+	{
+		return $this->db->lastInsertId();
+	}
 }
 
 class AN_DatabaseResult extends ArrayObject
