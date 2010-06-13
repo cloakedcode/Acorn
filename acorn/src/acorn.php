@@ -188,12 +188,15 @@ class Acorn
 	 */
 	static function filePath($type, $name)
 	{
-		$type = strtolower($type);
-		$name = strtolower($name);
 		$path = '';
 
 		$event_params = array('type' => &$type, 'name' => &$name, 'path' => &$path);
-		AN_Event::runFilterOnData('acorn.file_path', $event_params);
+
+		if (AN_Event::runFilterOnData('acorn.file_path', $event_params) === false)
+		{
+			$type = strtolower($type);
+			$name = strtolower($name);
+		}
 
 		if (empty($path) === false)
 		{
