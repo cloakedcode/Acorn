@@ -69,8 +69,8 @@ class AN_ViewStream extends AN_Stream
 {
 	function stream_open($path, $mode, $options, &$opened_path)
 	{
+		$cache = Acorn::$cache_path.'/view_'.md5($path);
 		$path = self::stream_path($path);
-		$cache = Acorn::$cache_path.'/view_'.basename($path);
 
 		if (file_exists($cache) === false || filemtime($path) > filemtime($cache))
 		{
@@ -99,8 +99,8 @@ class AN_ModelStream extends AN_Stream
 {
 	function stream_open($path, $mode, $options, &$opened_path)
 	{
+		$cache = Acorn::$cache_path.'/model_'.md5($path);
 		$path = self::stream_path($path);
-		$cache = Acorn::$cache_path.'/model_'.basename($path);
 
 		if (file_exists($cache) === false || filemtime($path) > filemtime($cache))
 		{
@@ -150,3 +150,4 @@ class AN_ModelStream extends AN_Stream
 stream_wrapper_register("anview", "AN_ViewStream");
 stream_wrapper_register("anmodel", "AN_ModelStream");
 
+?>
