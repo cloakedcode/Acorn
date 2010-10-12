@@ -680,6 +680,7 @@ class AN_Model
 	function __construct($data = array())
 	{
 		$this->_data = $data;
+		$this->_changed_data = $data;
 	}
 
 	function __get($key)
@@ -702,6 +703,16 @@ class AN_Model
 			$this->_data[$key] = $value;
 			$this->_changed_data[$key] = $value;
 		}
+	}
+
+	function __isset($key)
+	{
+		return isset($this->_data[$key]);
+	}
+
+	function __unset($key)
+	{
+		unset($this->_data[$key]);
 	}
 
 	function __toString()
@@ -784,21 +795,14 @@ EOD;
 	 * @param array $data Data to be saved.
 	 * @static
 	 * @access public
-	 * @return bool|object False if data was unsuccessfully saved, otherwise newly created model.
+	 * @return object The model that was used to save the data. If the 'errors' property is empty the save was successful.
 	 */
 	static function create($class, $data)
 	{
 		$model = new $class($data);
-		$return = true;
+		$model->save();
 
-		if ($model->save() === false)
-		{
-			$return = $model->errors;
-		}
-
-		unset($model);
-
-		return $return;
+		return $model;
 	}
 
 	static function insert($class, $data)
@@ -857,7 +861,8 @@ EOD;
 
 		$query = rtrim($query, ', ')." WHERE {$condition}";
 
-		$args = array_merge($vals, array_slice(func_get_args(), 3));
+		$args = func_get_args();
+		$args = array_merge($vals, array_slice($args, 3));
 		array_unshift($args, $query);
 		array_unshift($args, $class);
 
@@ -885,6 +890,7 @@ EOD;
 	{
 		if ($validate)
 		{
+			$this->errors = array();
 			$this->validate();
 			if (empty($this->errors) === false)
 			{
@@ -916,8 +922,6 @@ EOD;
 
 	function validate()
 	{
-		$this->errors = array();
-
 		$def = $this->_tableDefinition(get_class($this));
 		$rules = array_merge($def, $this->validation_rules);
 		
@@ -1310,8 +1314,8 @@ class AN_ViewStream extends AN_Stream
 {
 	function stream_open($path, $mode, $options, &$opened_path)
 	{
+		$cache = Acorn::$cache_path.'/view_'.md5($path);
 		$path = self::stream_path($path);
-		$cache = Acorn::$cache_path.'/view_'.basename($path);
 
 		if (file_exists($cache) === false || filemtime($path) > filemtime($cache))
 		{
@@ -1340,8 +1344,8 @@ class AN_ModelStream extends AN_Stream
 {
 	function stream_open($path, $mode, $options, &$opened_path)
 	{
+		$cache = Acorn::$cache_path.'/model_'.md5($path);
 		$path = self::stream_path($path);
-		$cache = Acorn::$cache_path.'/model_'.basename($path);
 
 		if (file_exists($cache) === false || filemtime($path) > filemtime($cache))
 		{
@@ -1391,3 +1395,4 @@ class AN_ModelStream extends AN_Stream
 stream_wrapper_register("anview", "AN_ViewStream");
 stream_wrapper_register("anmodel", "AN_ModelStream");
 
+?>
