@@ -1069,7 +1069,18 @@ class AN_Database
 	{
 		try
 		{
-			$pdo = new PDO("{$db_info['adapter']}:host={$db_info['host']};dbname={$db_info['database']}", $db_info['user'], $db_info['password']);
+                        $host = '';
+
+                        if (isset($db_info['socket']))
+                        {
+                                $host = "unix_socket={$db_info['socket']}";
+                        }
+                        else
+                        {
+                                $host = "host={$db_info['host']}".(isset($db_info['port']) ? ";port={$db_info['port']}" : '');
+                        }
+
+			$pdo = new PDO("{$db_info['adapter']}:{$host};dbname={$db_info['database']}", $db_info['user'], $db_info['password']);
 
 			$this->db = $pdo;
 		}
@@ -1306,6 +1317,18 @@ class AN_Stream
 	{
 		return fstat($this->file);
 	}
+
+        function cache_path($filename)
+        {
+          $path = Acorn::$cache_path;
+
+          if (is_dir($path) === false)
+          {
+            mkdir($path);
+          }
+
+          return $path.'/'.$filename;
+        }
 }
 
 // Use the PHP short tags (e.g. <? or <?=) even if it's turned off by including/requiring a file with the "anview" protocol (e.g. include('anview://myfile.php'))
@@ -1314,7 +1337,7 @@ class AN_ViewStream extends AN_Stream
 {
 	function stream_open($path, $mode, $options, &$opened_path)
 	{
-		$cache = Acorn::$cache_path.'/view_'.md5($path);
+		$cache = self::cache_path('view_'.md5($path));
 		$path = self::stream_path($path);
 
 		if (file_exists($cache) === false || filemtime($path) > filemtime($cache))
@@ -1344,7 +1367,7 @@ class AN_ModelStream extends AN_Stream
 {
 	function stream_open($path, $mode, $options, &$opened_path)
 	{
-		$cache = Acorn::$cache_path.'/model_'.md5($path);
+		$cache = self::cache_path('model_'.md5($path));
 		$path = self::stream_path($path);
 
 		if (file_exists($cache) === false || filemtime($path) > filemtime($cache))
@@ -1375,7 +1398,7 @@ class AN_ModelStream extends AN_Stream
 				$model_data = str_ireplace("parent::{$name}(", "parent::{$name}(__CLASS__,", $model_data);
 			}
 
-			$model_data = preg_replace('/}\s*\?>/', "{$new_funcs}}?>", $model_data);
+			$model_data = preg_replace('/(extends .*?\s*{)/', "\$1{$new_funcs}", $model_data);
 			file_put_contents($cache, $model_data);
 		}
 

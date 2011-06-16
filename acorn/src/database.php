@@ -8,7 +8,18 @@ class AN_Database
 	{
 		try
 		{
-			$pdo = new PDO("{$db_info['adapter']}:host={$db_info['host']};dbname={$db_info['database']}", $db_info['user'], $db_info['password']);
+                        $host = '';
+
+                        if (isset($db_info['socket']))
+                        {
+                                $host = "unix_socket={$db_info['socket']}";
+                        }
+                        else
+                        {
+                                $host = "host={$db_info['host']}".(isset($db_info['port']) ? ";port={$db_info['port']}" : '');
+                        }
+
+			$pdo = new PDO("{$db_info['adapter']}:{$host};dbname={$db_info['database']}", $db_info['user'], $db_info['password']);
 
 			$this->db = $pdo;
 		}
