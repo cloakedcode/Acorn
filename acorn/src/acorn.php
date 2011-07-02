@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
 Copyright (c) 2010 Alan Smith
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -120,7 +120,7 @@ class Acorn
 	 * Sets status and displays error.
 	 * 
 	 * Parameters:
-	 	int $code - Error code
+	 * 	int $code - Error code
 	 */
 	static function error($code)
 	{
