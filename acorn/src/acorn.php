@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
 Copyright (c) 2010 Alan Smith
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -38,7 +38,7 @@ function acorn_autoload($class)
 	return Acorn::load('model', $class);
 }
 
-/*
+/**
  * Class: Acorn 
  * This is the class you'll be using the most. You don't need to know much about the other classes except <AN_Model>.
  *
@@ -55,7 +55,7 @@ class Acorn
 
 	static private $routes = array();
 
-	/*
+	/**
 	 * Method: _bootstrap
 	 * Bootstraps Acorn. Is called automatically when Acorn loaded. You never need to call this function directly.
 	 */
@@ -71,7 +71,7 @@ class Acorn
 		}
 	}
 
-	/*
+	/**
 	 * Method: defineModel
 	 * Alias for <AN_Model::defineModel>.
 	 *
@@ -83,7 +83,7 @@ class Acorn
 		AN_Model::defineModel($name, $parent);
 	}
 
-	/*
+	/**
 	 * Method: database
 	 * Returns database connection using the specified settings. Required keys are: user, password, database, host, adapter.
 	 *
@@ -115,7 +115,7 @@ class Acorn
 		return $db;
 	}
 
-	/*
+	/**
 	 * Method: error
 	 * Sets status and displays error.
 	 * 
@@ -130,7 +130,7 @@ class Acorn
 		AN_Event::run('acorn.error', $code);
 	}
 
-	/*
+	/**
 	 * Method: load
 	 * Loads named file with the given type.
 	 *
@@ -173,7 +173,7 @@ class Acorn
 		return false;
 	}
 
-	/*
+	/**
 	 * Method: filePath
 	 * Searches Acorn::$include_paths for the specified file. 
 	 * 
@@ -232,7 +232,7 @@ class Acorn
 		return false;
 	}
 
-	/*
+	/**
 	 * Method: renderView
 	 * Renders the view at the specified path.
 	 * 
@@ -280,7 +280,7 @@ class Acorn
 		}
 	}
 
-	/*
+	/**
 	 * Method: renderPartial
 	 * Renders a partial with the specified name and returns it as a string. 
 	 * 
@@ -321,7 +321,7 @@ class Acorn
 		return null;
 	}	
 
-	/*
+	/**
 	 * Method: route
 	 * Connects a URL to a callback with default parameters and regular expression requirements. 
 	 * 
@@ -372,7 +372,7 @@ class Acorn
 		self::$routes[$bits[0].' '.$bits[1].'$'] = array($callback, (array)$defaults, $keys, $orig_url);
 	}
 
-	/*
+	/**
 	 * Method: url
 	 * Converts the given parameters into a URL appropriate for a link.
 	 * 	
@@ -433,7 +433,7 @@ class Acorn
 		return null;
 	}
 
-	/*
+	/**
 	 * Method: run 
 	 * Calls the first matched route for $url. If no parameters are passed the current request method and request uri are used.
 	 * 
@@ -497,7 +497,7 @@ class Acorn
 		return false;
 	}
 
-	/*
+	/**
 	 * Method: underscore 
 	 * Converts string to lowercase and replaces lowercase letter followed by a uppercase letter with the lowercase
 	 * version of both separated by an underscore.
