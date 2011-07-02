@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * Class: AN_Model 
  * The 'M' in MVC.
  */
@@ -58,7 +58,7 @@ class AN_Model
 		return print_r($this->_data, true);
 	}
 
-	/**
+	/*
 	 * Method: defineModel
 	 * Defines a model at runtime allowing for models to be used without the need to create a class for each one.
 	 * 
@@ -86,7 +86,7 @@ EOD;
 		
 	}
 
-	/**
+	/*
          * Method: query
 	 * Executes a (prepared) query and returns an array of models. Substitutes '#table' in the query with the name of the table.  Any arguments beyond $query are substituted into the query.
 	 *
@@ -123,7 +123,7 @@ EOD;
 		return false;
 	}
 
-	/**
+	/*
          * Method: create
 	 * Creates a row in the database with $data and returns the new model.
 	 *
@@ -170,7 +170,7 @@ EOD;
 		return false;
 	}
 
-	/**
+	/*
          * Method: update
 	 * Updates row based on given condition(s). 
 	 *
@@ -210,7 +210,7 @@ EOD;
 		return call_user_func_array(array('self', 'query'), $args);
 	}
 
-	/**
+	/*
          * Method: delete
 	 * Delete row(s) with given condition(s). 
 	 *
