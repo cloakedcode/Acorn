@@ -1,22 +1,10 @@
-<?php
-/*
- *
- * This is a small demonstration of how you can use Acorn without a controller, view, and router.
- *
- * Why would you use Acorn this way? It reduces file clutter and is also faster (performance-wise).
- *
- */
-?>
 <html>
 <head>
 	<title>Acorn - Demo</title>
 </head>
 
 <body>
-<?php if (empty($_GET['id'])) : ?>
-	<h1>Welcome to Acorn</h1>
-	<p>This is a demonstration of Acorn. You like?</p>
-<?php endif;
+<?php
 
 ini_set('date.timezone', 'America/New_York');
 
@@ -25,15 +13,25 @@ ini_set('date.timezone', 'America/New_York');
  *
  */
 
-define('ROOT_DIR', '.');
 require('acorn/acorn.php');
 
 $time = microtime(true);
 
-Acorn::route('GET /skipper', 'sea');
+Acorn::route('GET /', 'index');
+// /router_test.php/skipper
+Acorn::route('GET /skipper/*', 'sea');
+// /router_test.php/p/20
 Acorn::route('GET /p/:num', 'digits', array('num' => 46), array('num' => '\d+'));
+
 Acorn::run();
 
+function index()
+{
+?>
+	<h1>Welcome to Acorn</h1>
+	<p>This is a demonstration of Acorn. You like?</p>
+<?php
+}
 function sea($params)
 {
 	var_dump($params);

@@ -1,6 +1,6 @@
 <?php
 
-/*
+/*!
 Copyright (c) 2010 Alan Smith
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,7 +27,8 @@ if (defined('ACORN_DIR') === false)
 	define('ACORN_DIR', dirname(__FILE__));
 }
 
-$url = dirname($_SERVER['SCRIPT_NAME']);
+define('ACORN_CLEAN_URLS', true);
+$url = ACORN_CLEAN_URLS ? dirname($_SERVER['SCRIPT_NAME']) : $_SERVER['SCRIPT_NAME'];
 define('ACORN_URL', ($url === '/') ? $url : $url.'/');
 define('ACORN_VERSION', 0.9);
 
@@ -38,12 +39,10 @@ function acorn_autoload($class)
 	return Acorn::load('model', $class);
 }
 
-/*
- * Class: Acorn 
+/**
  * This is the class you'll be using the most. You don't need to know much about the other classes except <AN_Model>.
  *
- * See Also:
- * 	<AN_Model>
+ * @see AN_Model model
  */
 class Acorn
 {
@@ -55,9 +54,10 @@ class Acorn
 
 	static private $routes = array();
 
-	/*
-	 * Method: _bootstrap
+	/**
 	 * Bootstraps Acorn. Is called automatically when Acorn loaded. You never need to call this function directly.
+         *
+         * @api private
 	 */
 	static function _bootstrap()
 	{
@@ -71,29 +71,23 @@ class Acorn
 		}
 	}
 
-	/*
-	 * Method: defineModel
-	 * Alias for <AN_Model::defineModel>.
+	/**
+	 * Alias for AN_Model::defineModel
 	 *
-	 * See Also:
-	 * 	<AN_Model::defineModel>
+         * @see AN_Model::defineModel model.defineModel
 	 */
 	static function defineModel($name, $parent = 'AN_Model')
 	{
 		AN_Model::defineModel($name, $parent);
 	}
 
-	/*
-	 * Method: database
+	/**
 	 * Returns database connection using the specified settings. Required keys are: user, password, database, host, adapter.
 	 *
-	 * : <?php Acorn::database(array('user' => 'skrat', 'password' => 'nut', 'database' => 'acorn_tree', 'host' => 'localhost', 'adapter' => 'mysql')) ?>
+	 *     <?php Acorn::database(array('user' => 'skrat', 'password' => 'nut', 'database' => 'acorn_tree', 'host' => 'localhost', 'adapter' => 'mysql')) ?>
 	 *
-	 * Returns:
-	 * 	AN_Database - Database connection.
-	 * 
-	 * See Also:
-	 * 	<AN_Database>
+	 * @return {AN_Database} Database connection.
+	 * @see AN_Database database
 	 */
 	static function database($config = array())
 	{
@@ -115,12 +109,10 @@ class Acorn
 		return $db;
 	}
 
-	/*
-	 * Method: error
+	/**
 	 * Sets status and displays error.
 	 * 
-	 * Parameters:
-	 * 	int $code - Error code
+	 * @param {int} code Error code
 	 */
 	static function error($code)
 	{
@@ -130,21 +122,15 @@ class Acorn
 		AN_Event::run('acorn.error', $code);
 	}
 
-	/*
-	 * Method: load
+	/**
 	 * Loads named file with the given type.
 	 *
-	 * : <?php Acorn::load('model', 'User'); ?>
+	 *     <?php Acorn::load('model', 'User'); ?>
 	 * 
-	 * Parameters:
-	 * 	string $type - Type of file.
-	 * 	string $name - Name of file.
-	 *
-	 * Returns:
-	 * 	bool - True if successfully loaded file.
-	 *
-	 * See Also:
-	 *	<filePath>
+	 * @param {String} type Type of file.
+	 * @param {String} name - Name of file.
+	 * @return {bool} True if successfully loaded file.
+	 * @see filePath
 	 */
 	static function load($type, $name)
 	{
@@ -173,18 +159,15 @@ class Acorn
 		return false;
 	}
 
-	/*
-	 * Method: filePath
+	/**
 	 * Searches Acorn::$include_paths for the specified file. 
 	 * 
-	 * : <?php $path = Acorn::filePath('model', 'User'); ?>
+	 *     <?php $path = Acorn::filePath('model', 'User'); ?>
 	 *
-	 * Parameters:
-	 * 	string $type - Type of file - it gets converted to lowercase (e.g. 'model').
-	 * 	string $name - Name of file - it gets converted to lowercase (e.g. 'User').
+	 * @param {String} type Type of file - it gets converted to lowercase (e.g. 'model').
+	 * @param {String} name Name of file - it gets converted to lowercase (e.g. 'User').
 	 *
-	 * Returns:
-	 * 	mixed False if no file exists, otherwise path of file.
+	 * @return {bool|String} False if no file exists, otherwise path of file.
 	 */
 	static function filePath($type, $name)
 	{
@@ -232,18 +215,15 @@ class Acorn
 		return false;
 	}
 
-	/*
-	 * Method: renderView
+	/**
 	 * Renders the view at the specified path.
 	 * 
-	 * : <?php Acorn::renderView('./users/info'); ?>
+	 *     <?php Acorn::renderView('./users/info'); ?>
 	 * 
-	 * Parameters:
-	 * 	string $file - Path to the view file.
-	 * 	string $layout - Name of the layout to render the view in. If null no layout will be used. (Default: layout)
+	 * @param {String} file Path to the view file.
+	 * @param {String} layout Name of the layout to render the view in. If null no layout will be used. (Default: layout)
 	 *
-	 * See Also:
-	 *	<filePath>
+	 * @see filePath
 	 */
 	static function renderView($file, $layout = 'layout')
 	{
@@ -280,17 +260,14 @@ class Acorn
 		}
 	}
 
-	/*
-	 * Method: renderPartial
+	/**
 	 * Renders a partial with the specified name and returns it as a string. 
 	 * 
-	 * Parameters:
-	 * 	string $name - Name of the partial to render (e.g. 'posts/detail' would be 'posts/_detail.php' on disk).
-	 * 	mixed $var - Variable to be given the name of the partial (e.g. name = 'posts/detail', $detail = $var).
-	 * 	array $extra_vars - Variables for the partial to use. (e.g. array('user' => $user, 'time' => time()))
+	 * @param {String} name Name of the partial to render (e.g. 'posts/detail' would be 'posts/_detail.php' on disk).
+	 * @param {Mixed} var Variable to be given the name of the partial (e.g. name = 'posts/detail', $detail = $var).
+	 * @param {Array} extra_vars Variables for the partial to use. (e.g. array('user' => $user, 'time' => time()))
 	 *
-	 * Returns:
-	 * 	string Contents of the rendered partial.
+	 * @return {String} Contents of the rendered partial.
 	 */
 	static function renderPartial($name, $var, $extra_vars = array())
 	{
@@ -321,20 +298,18 @@ class Acorn
 		return null;
 	}	
 
-	/*
-	 * Method: route
+	/**
 	 * Connects a URL to a callback with default parameters and regular expression requirements. 
 	 * 
-	 * : <?php
-	 * : Acorn::route('GET /posts/:id', 'viewPost', null, array('id' => '\d+'));
-	 * : Acorn::route('GET /pages/:name', 'viewPage', array('name' => 'home'));
-	 * : ?>
+	 *     <?php
+	 *     Acorn::route('GET /posts/:id', 'viewPost', null, array('id' => '\d+'));
+	 *     Acorn::route('GET /pages/:name', 'viewPage', array('name' => 'home'));
+	 *     ?>
 	 *
-	 * Parameters:
-	 * 	string $url - The URL to match.
-	 * 	mixed $callback - The callback to be used when this route is matched.
-	 * 	array $defaults - The default paramenters to be passed to the callback.
-	 * 	array $regex - Regular expressions to define the segments in the URL.
+	 * @param {String} url The URL to match.
+	 * @param {Mixed} callback The callback to be used when this route is matched.
+	 * @param {Array} defaults The default paramenters to be passed to the callback.
+	 * @param {Array} regex Regular expressions to define the segments in the URL.
 	 */
 	static function route($url, $callback, $defaults = array(), $regex = array())
 	{
@@ -372,18 +347,15 @@ class Acorn
 		self::$routes[$bits[0].' '.$bits[1].'$'] = array($callback, (array)$defaults, $keys, $orig_url);
 	}
 
-	/*
-	 * Method: url
+	/**
 	 * Converts the given parameters into a URL appropriate for a link.
 	 * 	
-	 * : <?php echo Acorn::url(array('action' => 'view', 'id' => 1)); ?>
+	 *     <?php echo Acorn::url(array('action' => 'view', 'id' => 1)); ?>
 	 * 
-	 * Parameters:
-	 * 	array $params - Array of key/value pairs to match to a route.
-	 * 	string $method - Request method that matches the method at the beginning of the route.
+	 * @param {Array} params Array of key/value pairs to match to a route.
+	 * @param {String} method Request method that matches the method at the beginning of the route.
 	 *
-	 * Returns:
-	 * 	The URL as a string if a route is found. Null if no match is made.
+	 * @return {String} The URL as a string if a route is found. Null if no match is made.
 	 */
 	static function url($params, $method = 'get')
 	{
@@ -433,12 +405,10 @@ class Acorn
 		return null;
 	}
 
-	/*
-	 * Method: run 
+	/**
 	 * Calls the first matched route for $url. If no parameters are passed the current request method and request uri are used.
 	 * 
-	 * Parameters:
-	 * 	string $url - The URL to route. Must have a request method at the beginning (e.g. "GET /").
+	 * @param {String} url The URL to route. Must have a request method at the beginning (e.g. "GET /").
 	 */
 	static function run($url = null)
 	{
@@ -497,16 +467,13 @@ class Acorn
 		return false;
 	}
 
-	/*
-	 * Method: underscore 
+	/**
 	 * Converts string to lowercase and replaces lowercase letter followed by a uppercase letter with the lowercase
 	 * version of both separated by an underscore.
 	 * 
-	 * Parameters:
-	 * 	string $str - String to underscore.
+	 * @param {String} str String to underscore.
 	 *
-	 * Returns:
-	 * 	Underscored version of string.
+	 * @return {String} Underscored version of string.
 	 */
 	static function underscore($str)
 	{

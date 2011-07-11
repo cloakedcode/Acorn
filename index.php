@@ -1,15 +1,10 @@
 <?php
 
 ini_set('date.timezone', 'America/New_York');
-define('ROOT_DIR', dirname(__FILE__));
-
 require('acorn/acorn.php');
 
-$url = (empty($_GET['acorn_url'])) ? '' : $_GET['acorn_url'];
 $time = microtime(true);
-
-Acorn::run($url);
-
+Acorn::run();
 echo microtime(true) - $time;
 
 ?>

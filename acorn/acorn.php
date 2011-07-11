@@ -27,7 +27,8 @@ if (defined('ACORN_DIR') === false)
 	define('ACORN_DIR', dirname(__FILE__));
 }
 
-$url = dirname($_SERVER['SCRIPT_NAME']);
+define('ACORN_CLEAN_URLS', true);
+$url = ACORN_CLEAN_URLS ? dirname($_SERVER['SCRIPT_NAME']) : $_SERVER['SCRIPT_NAME'];
 define('ACORN_URL', ($url === '/') ? $url : $url.'/');
 define('ACORN_VERSION', 0.9);
 

@@ -1,7 +1,6 @@
 <?php
 
-/*
- * Class: AN_Model 
+/**
  * The 'M' in MVC.
  */
 class AN_Model
@@ -11,7 +10,6 @@ class AN_Model
 
 	static private $_table_defs = array();
 
-	
 	public $errors = array();
 	protected $validation_rules = array();
 
@@ -58,14 +56,12 @@ class AN_Model
 		return print_r($this->_data, true);
 	}
 
-	/*
-	 * Method: defineModel
+	/**
 	 * Defines a model at runtime allowing for models to be used without the need to create a class for each one.
 	 * 
-	 * @param string $name Name for the new model.
-	 * @param string $parent The class the model should inherit from. (Default: AN_Model)
-	 * @static
-	 * @access public
+	 * @param {String} name Name for the new model.
+	 * @param {String} parent The class the model should inherit from. (Default: AN_Model)
+	 * @api public
 	 */
 	static function defineModel($name, $parent = 'AN_Model')
 	{
@@ -86,19 +82,14 @@ EOD;
 		
 	}
 
-	/*
-         * Method: query
-	 * Executes a (prepared) query and returns an array of models. Substitutes '#table' in the query with the name of the table.  Any arguments beyond $query are substituted into the query.
+	/**
+	 * Executes a (prepared) query and returns an array of models. Substitutes `#table` in the query with the name of the table.  Any arguments beyond $query are substituted into the query.
 	 *
-	 * <code>
-	 * <?php $user = User::query('SELECT * FROM #table WHERE id=?', 10); ?>
-	 * </code>
+	 *     <?php $user = User::query('SELECT * FROM #table WHERE id=?', 10); ?>
 	 * 
-	 * @param string $class Class of the model.
-	 * @param string $query SQL query.
-	 * @static
-	 * @access public
-	 * @return bool|array False if query was not successfully executed, otherwise models from query.
+	 * @param {String} class Class of the model.
+	 * @param {String} query SQL query.
+	 * @return {Bool|Array} False if query was not successfully executed, otherwise models from query.
 	 */
 	static function query($class, $query)
 	{
@@ -123,19 +114,14 @@ EOD;
 		return false;
 	}
 
-	/*
-         * Method: create
+	/**
 	 * Creates a row in the database with $data and returns the new model.
 	 *
-	 * <code>
-	 * <?php $user = User::create(array('name' => 'Skrat', 'email' => 'skrat19@gmail.com')); ?>
-	 * </code>
+	 *     <?php $user = User::create(array('name' => 'Skrat', 'email' => 'skrat19@gmail.com')); ?>
 	 * 
-	 * @param string $class Class of the model.
-	 * @param array $data Data to be saved.
-	 * @static
-	 * @access public
-	 * @return object The model that was used to save the data. If the 'errors' property is empty the save was successful.
+	 * @param {String} class Class of the model.
+	 * @param {Array} data Data to be saved.
+	 * @return {Object} The model that was used to save the data. If the 'errors' property is empty the save was successful.
 	 */
 	static function create($class, $data)
 	{
@@ -170,20 +156,15 @@ EOD;
 		return false;
 	}
 
-	/*
-         * Method: update
+	/**
 	 * Updates row based on given condition(s). 
 	 *
-	 * <code>
-	 * <?php User::update(array('name' => 'Skrat', 'email' => 'skrat19@gmail.com'), 'id = ?', 10); ?>
-	 * </code>
+	 *     <?php User::update(array('name' => 'Skrat', 'email' => 'skrat19@gmail.com'), 'id = ?', 10); ?>
 	 * 
-	 * @param string $class Class of the model.
-	 * @param array $value Value(s) to update.
-	 * @param string $condition Condition(s) to limit the update to.
-	 * @static
-	 * @access public
-	 * @return bool False if data was unsuccessfully updated, otherwise true.
+	 * @param {String} class Class of the model.
+	 * @param {Array} value Value(s) to update.
+	 * @param {String} condition Condition(s) to limit the update to.
+	 * @return {Bool} False if data was unsuccessfully updated, otherwise true.
 	 */
 	static function update($class, $value, $condition)
 	{
@@ -210,19 +191,14 @@ EOD;
 		return call_user_func_array(array('self', 'query'), $args);
 	}
 
-	/*
-         * Method: delete
+	/**
 	 * Delete row(s) with given condition(s). 
 	 *
-	 * <code>
-	 * <?php User::delete('id = ?', 10); ?>
-	 * </code>
+	 *     <?php User::delete('id = ?', 10); ?>
 	 * 
-	 * @param string $class Class of the model.
-	 * @param string $condition Condition(s) to limit the delete to.
-	 * @static
-	 * @access public
-	 * @return bool True if row(s) were deleted.
+	 * @param {String} class Class of the model.
+	 * @param {String} condition Condition(s) to limit the delete to.
+	 * @return {Bool} True if row(s) were deleted.
 	 */
 	static function delete($class, $condition)
 	{
